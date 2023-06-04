@@ -1,0 +1,36 @@
+
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<div style="margin-bottom: 100px;"></div>
+
+<div>
+	<img src="{{ url_for('static', filename='logo.png') }}" alt="logo" />
+</div>
+
+<div style="margin-bottom: 50px;"></div>
+
+<div style="display: flex; align-items: center; justify-content: center;">
+	<a href="create_room">
+		<button>Create a Room</button>
+	</a>
+	<a href="join_room">
+		<button>Join a Room</button>
+	</a>
+	<a href="browse_rooms">
+		<button>Browse Rooms</button>
+	</a>
+</div>
+
+<div style="margin-bottom: 50px;"></div>
+
+<div>
+	<p>
+		EstiMania: A thrilling card game of estimation. Guess rounds, calculate bets, and strategize your way to victory. Test your estimation skills and embrace the excitement of EstiMania. Ready to play? Let the games begin!
+	</p>
+</div>
+{% endblock %}
+
+

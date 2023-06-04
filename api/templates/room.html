@@ -1,0 +1,42 @@
+
+
+
+{% extends 'base.html' %}
+
+
+{% block content %}
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>    
+</head>
+<body>
+	<div id="container">
+		<div id="tableArea" ></div>
+		<div id="scoreArea"></div>
+		<div id="handArea"></div>
+		<div id="messageArea"></div>
+	</div>
+    <form id="chatForm">
+        <input type="text" id="message" placeholder="Enter your message">
+        <input type="submit" value="Send">
+    </form>
+    <div>
+        <button id="startGameButton">Start Game</button>
+    </div>
+
+	<!-- Bet input modal -->
+	<div id="betModal" class="modal">
+	  <div class="modal-content">
+		<h2>Place Your Bet</h2>
+		<input type="number" min="0" id="betInput" placeholder="Enter your bet">
+		<button id="submitBetButton">Submit</button>
+	  </div>
+	</div>
+
+</body>
+<script src="{{url_for('static', filename='socket.js')}}"></script>
+<script src="{{url_for('static', filename='Card.js')}}"></script>
+
+{% endblock %}
+
+
