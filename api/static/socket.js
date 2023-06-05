@@ -10,7 +10,7 @@ if (!username) {
   localStorage.setItem('username', username);
 }
 
-var socket = io.connect('https://' + document.domain + ':' + location.port);
+var socket = io.connect('//' + document.domain + ':' + location.port);
 
 // Get the current URL
 var url = window.location.href;
