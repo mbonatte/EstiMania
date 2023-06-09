@@ -160,3 +160,50 @@ BODY {
   border: 1px solid #888;
   width: 300px;
 }
+
+#floatingText {
+  font-size: 30px;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translateX(-50%);
+  transform: translateY(-50%);
+  background-color: red;
+  padding: 10px;
+  border-radius: 5px;
+  opacity: 0;
+}
+
+@keyframes floatAnimation {
+  0% {
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(calc(50vh - 50%));
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(calc(50vh - 50%));
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh);
+  }
+}
+
+
+

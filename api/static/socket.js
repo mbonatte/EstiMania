@@ -40,7 +40,8 @@ socket.on('bet', function(username, callback) {
 
 socket.on('pick', function(username, callback) {
 	socket.send({username: username, message: 'is choosing card'});
-	alert('Please choose your card!');
+	//alert('Please choose your card!');
+	bringAttention()
 	
 	// List of card elements with class 'card'
     var cardElements = document.getElementsByClassName('card');
@@ -160,4 +161,21 @@ function showBetInputForm(callback) {
 
   // Attach event listener to submit button
   submitBetButton.addEventListener('click', submitBet);
+}
+
+// Bring attention
+function bringAttention() {
+	// Get the floating text element
+	const floatingText = document.getElementById('floatingText');
+
+	// Function to start the float animation
+	function startFloatAnimation() {
+	  floatingText.style.animation = 'none'; // Reset the animation
+	  void floatingText.offsetWidth; // Trigger a reflow
+	  floatingText.style.animation = 'floatAnimation 6s forwards';
+	}
+
+	// Call the startFloatAnimation function to begin the animation
+	startFloatAnimation();
+
 }
