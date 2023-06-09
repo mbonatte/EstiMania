@@ -204,6 +204,7 @@ class Game:
         self.players[winner].score_in_turn += 1
         print(f'{self.players[winner].username} won this turn')
         print()
+        emit('winner-card', str(highest_card), to=self.room_id)
         
         # Update the current player index to move to the next player
         self.current_player_to_drop = winner
@@ -386,5 +387,5 @@ class Card:
             return False
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, debug=True)
 

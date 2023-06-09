@@ -101,6 +101,18 @@ BODY {
 	box-shadow: 2px 2px 3px 0px #000000; 
 }
 
+@keyframes highlight {
+  0% {
+    border-color: yellow;
+  }
+  50% {
+    border-color: red;
+  }
+  100% {
+    border-color: yellow;
+  }
+}
+
 #container {
             display: grid;
             grid-template-columns: 2fr 1fr;

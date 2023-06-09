@@ -72,6 +72,7 @@ socket.on('table', function(tableCards) {
 	for (var i = 0; i < tableCards.length; i++) {
 		var card = tableCards[i];
 		var cardElement = document.createElement('div');
+		cardElement.id = card;
 		cardElement.className = 'card';
 		cardElement.textContent = card;
 		tableArea.appendChild(cardElement)
@@ -110,6 +111,15 @@ socket.on('score', function(users) {
 	}
 	$('#scoreArea').html(userListHTML);
 });
+
+socket.on('winner-card', function(card) {
+	const winner_card = document.getElementById(card);
+	console.log(card)
+	console.log(winner_card)
+	winner_card.style.border = '5px red solid';
+	winner_card.style.animation =  'highlight 1s infinite';
+});
+
 
 $('form#chatForm').submit(function(event) {
 	event.preventDefault();
@@ -163,7 +173,7 @@ function showBetInputForm(callback) {
   submitBetButton.addEventListener('click', submitBet);
 }
 
-// Bring attention
+// Bring attention for picking
 function bringAttention() {
 	// Get the floating text element
 	const floatingText = document.getElementById('floatingText');
