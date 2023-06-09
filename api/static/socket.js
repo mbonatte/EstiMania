@@ -29,6 +29,11 @@ socket.on('message', function(msg) {
 	$('#messageArea').scrollTop($('#messageArea')[0].scrollHeight);
 });
 
+socket.on('remove_start_game_btn', function(msg) {
+	const startGameButton = document.getElementById('startGameButton');
+	startGameButton.remove();
+});
+
 socket.on('bet', function(username, callback) {
 	console.log('initiaing betting')
 	showBetInputForm(function(bet) {

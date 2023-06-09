@@ -14,18 +14,15 @@ socketio = SocketIO(app)
 
 # Game variables
 players = {}
-game_started = False
 table_cards = []
 rooms_available = []
 user_rooms = {}  # Dictionary to map session IDs to rooms
 
 
 @app.route('/')
-def index():
-    return render_template('index.html')
-    
 @app.route('/home')
-def home():
+@app.route('/about')
+def index():
     return render_template('index.html')
     
 @app.route('/join_room')
@@ -95,17 +92,17 @@ def handle_start_game():
     room_id = players[request.sid].room_id
     players_in_room = [players[sid] for sid in socketio.server.manager.rooms['/'][room_id]]
     emit('message', 'The game has started!', to=room_id)
+    emit('remove_start_game_btn', '', to=room_id)
     game = Game(room_id, players_in_room)
     game.run()
 
 @socketio.on('pick_card')
 def handle_pick_card(card_picked):
     player = players[request.sid]
-    if game_started:
-        # Removing the card from player's hand
-        player.hand.remove(card_picked)
-        table_cards.append(card_picked)
-        emit('table', table_cards, to=player.room_id)
+    # Removing the card from player's hand
+    player.hand.remove(card_picked)
+    table_cards.append(card_picked)
+    emit('table', table_cards, to=player.room_id)
 
 @socketio.on('score')
 def handle_score():
