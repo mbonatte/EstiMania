@@ -75,11 +75,14 @@ socket.on('table', function(tableCards) {
 	// Generate HTML code for each card and append it to tableArea
 	for (var i = 0; i < tableCards.length; i++) {
 		var card = tableCards[i];
+		var cardWrapper = document.createElement('div');
+		cardWrapper.className = 'card-wrapper';
 		var cardElement = document.createElement('div');
 		cardElement.id = card;
 		cardElement.className = 'card';
 		cardElement.textContent = card;
-		tableArea.appendChild(cardElement)
+		cardWrapper.appendChild(cardElement);
+		tableArea.appendChild(cardWrapper)
 		
 		// Display card
 		playerCard1 = new Card(card);
@@ -96,10 +99,13 @@ socket.on('hand', function(userCards) {
 	// Generate HTML code for each card and append it to handArea
 	for (var i = 0; i < userCards.length; i++) {
 		var card = userCards[i];
+		var cardWrapper = document.createElement('div');
+		cardWrapper.className = 'card-wrapper';
 		var cardElement = document.createElement('div');
 		cardElement.className = 'card';
 		cardElement.textContent = card;
-		handArea.appendChild(cardElement)
+		cardWrapper.appendChild(cardElement);
+		handArea.appendChild(cardWrapper);
 		
 		// Display card
 		playerCard1 = new Card(card);

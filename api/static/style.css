@@ -28,6 +28,69 @@ nav img {
   img-align: center;
 }
 
+img {
+  width: auto; /* This will maintain the aspect ratio of the image */
+  height: 200px;
+  img-align: center;
+}
+
+button {
+	background-color: rgb(76, 11, 174);
+	color: white;
+	font-size: 18px;
+	text-decoration: none;
+}
+
+div {
+  text-align: center;
+}
+
+p {
+  font-size: 15px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+BODY {
+  background-image: radial-gradient(circle at 29% 55%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 4%,transparent 4%, transparent 44%,transparent 44%, transparent 100%),radial-gradient(circle at 85% 89%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 51%,transparent 51%, transparent 52%,transparent 52%, transparent 100%),radial-gradient(circle at 6% 90%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 53%,transparent 53%, transparent 64%,transparent 64%, transparent 100%),radial-gradient(circle at 35% 75%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 6%,transparent 6%, transparent 98%,transparent 98%, transparent 100%),radial-gradient(circle at 56% 75%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 16%,transparent 16%, transparent 23%,transparent 23%, transparent 100%),radial-gradient(circle at 42% 0%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 3%,transparent 3%, transparent 26%,transparent 26%, transparent 100%),radial-gradient(circle at 29% 28%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 51%,transparent 51%, transparent 75%,transparent 75%, transparent 100%),radial-gradient(circle at 77% 21%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 35%,transparent 35%, transparent 55%,transparent 55%, transparent 100%),radial-gradient(circle at 65% 91%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 46%,transparent 46%, transparent 76%,transparent 76%, transparent 100%),linear-gradient(45deg, rgb(83, 91, 235),rgb(76, 11, 174));
+  min-height:100vh;
+  color:#DDDDDD;
+  font-family:verdana;
+}
+
+
+.menu-toggle {
+  cursor: pointer;
+  display: none;
+  position: absolute;
+  top: 2.7%;
+  right: 5%;
+}
+
+.menu-toggle span {
+  display: block;
+  width: 30px;
+  height: 3px;
+  background-color: #000;
+  margin-bottom: 5px;
+}
+
+.mobile-menu {
+  overflow: hidden;
+  background-color: #333;
+  position: relative;
+}
+
+.mobile-menu a {
+  color: white;
+  padding: 14px 50px;
+  text-decoration: none;
+  font-size: 17px;
+  display: block;
+}
+
 
 .form-group {
   margin-left: auto;
@@ -48,47 +111,53 @@ nav img {
   font-size: 1rem;
 }
 
-
-img {
-  width: auto; /* This will maintain the aspect ratio of the image */
-  height: 200px;
-  img-align: center;
-}
-
-button {
-	background-color: rgb(76, 11, 174);
-	color: white;
-	font-size: 18px;
-	text-decoration: none;
-}
-
-div {
-  text-align: center;
-}
-
-p {
-  font-size: 15px;
+/* Media query for computers */
+@media (min-width: 700px) {
+  p {
+    width: 20%;
+  }
+  .form-group {
   width: 20%;
-  margin-left: auto;
-  margin-right: auto;
-  text-align: justify;
-  text-justify: inter-word;
+  }
+  .card-wrapper {
+  transform: scale(0.7);
+  box-sizing: content-box;
+  width: calc(150px * 0.7);
+  height: calc(214px * 0.7);
+  }
 }
 
-BODY {
-  background-image: radial-gradient(circle at 29% 55%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 4%,transparent 4%, transparent 44%,transparent 44%, transparent 100%),radial-gradient(circle at 85% 89%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 51%,transparent 51%, transparent 52%,transparent 52%, transparent 100%),radial-gradient(circle at 6% 90%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 53%,transparent 53%, transparent 64%,transparent 64%, transparent 100%),radial-gradient(circle at 35% 75%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 6%,transparent 6%, transparent 98%,transparent 98%, transparent 100%),radial-gradient(circle at 56% 75%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 16%,transparent 16%, transparent 23%,transparent 23%, transparent 100%),radial-gradient(circle at 42% 0%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 3%,transparent 3%, transparent 26%,transparent 26%, transparent 100%),radial-gradient(circle at 29% 28%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 51%,transparent 51%, transparent 75%,transparent 75%, transparent 100%),radial-gradient(circle at 77% 21%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 35%,transparent 35%, transparent 55%,transparent 55%, transparent 100%),radial-gradient(circle at 65% 91%, hsla(329,0%,99%,0.05) 0%, hsla(329,0%,99%,0.05) 46%,transparent 46%, transparent 76%,transparent 76%, transparent 100%),linear-gradient(45deg, rgb(83, 91, 235),rgb(76, 11, 174));
-  min-height:100vh;
-  padding:20px;
-  color:#DDDDDD;
-  font-family:verdana;
+/* Media query for mobile devices */
+@media (max-width: 700px) {
+  p {
+    width: 70%;
+  }
+  .form-group {
+  width: 70%;
+  }
+  .card-wrapper {
+  transform: scale(0.35);
+  box-sizing: content-box;
+  width: calc(150px * 0.35);
+  height: calc(214px * 0.35);
+  }
+  .menu {
+    display: none;
+  }
+  .menu-toggle {
+    display: block;
+  }
+}
+
+.card-wrapper {
+  float: left;
+  transform-origin: top left;
+  padding: 2px;
 }
 
 .card {
-	box-sizing: border-box;  
 	width: 150px;
 	height: 214px;
-	margin:10px;
-	float: left;  
 	background-color: white;
 	background-image: url('https://i.imgur.com/yKggR5N.png');
 	background-position-x: 0px;
@@ -98,7 +167,7 @@ BODY {
 	border: 1px #555555 solid;
 	border-radius: 10px;
 	-webkit-box-shadow: 2px 2px 3px 0px #000000; 
-	box-shadow: 2px 2px 3px 0px #000000; 
+	box-shadow: 2px 2px 3px 0px #000000;
 }
 
 @keyframes highlight {
@@ -151,6 +220,7 @@ BODY {
 	height: 220px;
 	border: 1px solid #ccc;
 	padding: 10px;
+	
 }
 
 .modal {

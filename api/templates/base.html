@@ -10,16 +10,27 @@
   </head>
   <body>
     <nav>
-	  <a href="/home">
-		<img src="{{ url_for('static', filename='logo_menu.png') }}" alt="logo" />
-	  </a>
-      <ul>
-        <li><a href="/create_room">Create a room</a></li>
-		<li><a href="/join_room">Join a room</a></li>
-		<li><a href="/browse_rooms">Browse Rooms</a></li>
-		<li><a href="/about">About</a></li>
-      </ul>
+		<a href="/home">
+			<img src="{{ url_for('static', filename='logo_menu.png') }}" alt="logo" />
+		</a>
+		<label  class="menu-toggle" onclick="toggleMobileMenu(this)">
+			<span></span>
+			<span></span>
+			<span></span>
+		</label >
+		<ul id="menu" class="menu">
+			<li><a href="/create_room">Create a room</a></li>
+			<li><a href="/join_room">Join a room</a></li>
+			<li><a href="/browse_rooms">Browse Rooms</a></li>
+			<li><a href="/about">About</a></li>
+		</ul>
     </nav>
+	<div id="mobile-menu" class="mobile-menu" style="display: none">
+		<a href="/create_room">Create a room</a>
+		<a href="/join_room">Join a room</a>
+		<a href="/browse_rooms">Browse Rooms</a>
+		<a href="/about">About</a>
+	</div>
 	<hr></hr>
 	<div class="content">
 		<content>
@@ -27,4 +38,14 @@
 		</content>
     </div>
   </body>
+ <script>
+function toggleMobileMenu() {
+	var mobile_menu = document.getElementById("mobile-menu");
+	if (mobile_menu.style.display === "block") {
+		mobile_menu.style.display = "none";
+	} else {
+		mobile_menu.style.display = "block";
+	}
+}
+ </script>
 </html>
