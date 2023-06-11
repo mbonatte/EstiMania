@@ -3,15 +3,89 @@
 
 
 {% block content %}
+
+<style>
+.rooms-table {
+	width: 70%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.rooms-table thead {
+	background-color: gray;
+}
+
+.rooms-table th,
+.rooms-table td {
+	padding: 10px;
+	text-align: left;
+}
+
+.rooms-table th {
+	font-weight: bold;
+	border-bottom: 1px solid #ddd;
+}
+
+.rooms-table tbody tr:nth-child(even) {
+	background-color: gray;
+	opacity: 0.5;
+}
+
+.rooms-table tbody tr:hover {
+	background-color: #e0e0e0;
+}
+</style>
+
 <h1> Browse rooms</h1>
-<ul>
-        {% for room in rooms %}
-            <li>
-                <a href="/rooms/{{ room }}">{{ room }}</a>
-                <span>Room: {{ room}}</span>
-            </li>
-        {% endfor %}
-    </ul>
+<table id="roomsTable" class="rooms-table">
+  <thead>
+    <tr>
+      <th>Room Name</th>
+      <th>Number of Players</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+
+<script>
+// Get the table body element
+const tableBody = document.querySelector('#roomsTable tbody');
+
+// Function to create a table row for a room
+function createRoomRow(room, nPlayers) {
+	const row = document.createElement('tr');
+	const nameCell = document.createElement('td');
+	const playersCell = document.createElement('td');
+	var roomLink = document.createElement('a');
+	
+	roomLink.textContent = room;
+	roomLink.href = '/rooms/' + room;
+	nameCell.appendChild(roomLink);
+	row.appendChild(nameCell);
+	
+	playersCell.textContent = nPlayers;
+	row.appendChild(playersCell);
+
+	return row;
+}
+
+// Function to populate the table with room data
+function populateRoomsTable(rooms) {
+	tableBody.innerHTML = ''; // Clear existing table rows
+	
+	for (var room in rooms) {
+		if (rooms.hasOwnProperty(room)) {
+			const row = createRoomRow(room, rooms[room].length);
+			tableBody.appendChild(row);
+		}
+	}
+}
+
+var roomsData = {{ rooms | tojson }};
+populateRoomsTable(roomsData);
+
+</script>
 	
 {% endblock %}
 

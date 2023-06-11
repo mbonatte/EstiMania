@@ -16,9 +16,8 @@ var socket = io.connect('//' + document.domain + ':' + location.port);
 var url = window.location.href;
 // Extract the room ID from the URL
 var roomID = url.substring(url.lastIndexOf('/') + 1);
-socket.emit('join_room', roomID);  // Emit a custom event to join the room
 
-socket.emit('username_response', username);
+socket.emit('join_room', roomID, username);
 
 socket.on('error', function(msg) {
 	alert(msg);

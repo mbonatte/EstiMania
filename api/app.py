@@ -12,11 +12,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 socketio = SocketIO(app)
 
-# Game variables
+# Server variables
 players = {}
-table_cards = []
-rooms_available = []
-user_rooms = {}  # Dictionary to map session IDs to rooms
+rooms_available = {}
 
 
 @app.route('/')
@@ -25,21 +23,6 @@ user_rooms = {}  # Dictionary to map session IDs to rooms
 def index():
     return render_template('index.html')
     
-@app.route('/join_room')
-def join_available_room():
-    return render_template('join_room.html')
-
-@app.route('/browse_rooms')
-def browse_rooms():
-    rooms = rooms_available
-    return render_template('browse_rooms.html', rooms=rooms)
-
-@app.route('/rooms/<room_id>')
-def rooms(room_id):
-    if room_id in rooms_available:
-        return render_template('room.html', room_id=room_id)
-    return jsonify({'error': 'No room found'}), 404
-
 @app.route('/create_room', methods=['GET', 'POST'])
 def create_room():
     if request.method == 'GET':
@@ -48,37 +31,44 @@ def create_room():
     username = request.json['username']
     room_id = request.json['roomName']
     pin = request.json['pin']
-    print('room_id:  ',room_id)
     
     if room_id == '':
-        # Generate a unique room ID or hash
         room_id = uuid4().hex
-    print('room_id:  ',room_id)
+    
     # Add room to rooms available
-    rooms_available.append(room_id)
+    rooms_available[room_id] = []
 
     # Return the room information as a response
     response = {'room_id': room_id}
     return jsonify(response)
+    
+@app.route('/join_room')
+def join_available_room():
+    return render_template('join_room.html')
+
+@app.route('/browse_rooms')
+def browse_rooms():
+    return render_template('browse_rooms.html', rooms=rooms_available)
+
+@app.route('/rooms/<room_id>')
+def rooms(room_id):
+    if room_id in rooms_available:
+        return render_template('room.html', room_id=room_id)
+    return jsonify({'error': 'No room found'}), 404
 
 @socketio.on('connect')
 def handle_connect(): 
     pass
     
 @socketio.on('join_room')
-def handle_join_room(room_id):
-    print(request.sid, room_id)
+def handle_join_room(room_id, username):
     join_room(room_id)
-    user_rooms[request.sid] = room_id  # Map session ID to room ID
-
-@socketio.on('username_response')
-def handle_username_response(username):
-    print(request.sid)
-    print(user_rooms)
-    room_id = user_rooms[request.sid]
     players[request.sid] = Player(request.sid, room_id=room_id, username=username)
+    rooms_available[room_id].append(request.sid)
     emit('message', f'{username} has connected!', to=room_id)
-    handle_score()
+
+    score = [f'{player.username}' for player in players.values() if player.room_id==room_id]
+    emit('score', score, to=room_id)
 
 @socketio.on('message')
 def handle_message(data):
@@ -96,31 +86,22 @@ def handle_start_game():
     game = Game(room_id, players_in_room)
     game.run()
 
-@socketio.on('pick_card')
-def handle_pick_card(card_picked):
-    player = players[request.sid]
-    # Removing the card from player's hand
-    player.hand.remove(card_picked)
-    table_cards.append(card_picked)
-    emit('table', table_cards, to=player.room_id)
-
-@socketio.on('score')
-def handle_score():
-    room_id = players[request.sid].room_id
-    score = [f'{player.username}' for player in players.values() if player.room_id==room_id]
-    emit('score', score, to=room_id)
-
 @socketio.on('disconnect')
 def handle_disconnect():
     if request.sid in players:
         username = players[request.sid].username
         room_id = players[request.sid].room_id
-        del players[request.sid]
+        
         emit('message', f'{username} has disconnected!', to=room_id)
         score = [f'{player.username}' for player in players.values() if player.room_id==room_id]
         emit('score', score, to=room_id)
+        
         leave_room(room_id)
-        user_rooms.pop(request.sid, None)
+        del players[request.sid]
+        rooms_available[room_id].remove(request.sid)
+        if len(rooms_available[room_id]) == 0:
+            del rooms_available[room_id]
+        
 
 class Game:
 
@@ -133,7 +114,6 @@ class Game:
         self.current_player_to_drop = 0
     
     def set_matches(self):
-        print(f'Setting matches')
         #from math import trunc
         #n_matches = trunc(52/self.numberOfPlayers)
         n_matches = 4
@@ -141,20 +121,15 @@ class Game:
         self.matches += ([i for i in range(n_matches,0,-1)])
     
     def deal(self,n_cards):
-        print(f'Dealing cards')
         deck = Deck()
         for player in self.players:
             player.hand = deck.deal(n_cards)
             hand = [str(card) for card in player.hand]
-            print(f'Sending cards to {player.username}')
             emit('hand', hand, to=player.connection_id)
-        print('Cards dealt')
     
     def setBets(self): 
         # Update the current player index to move to the next player
         self.current_player_to_bet = (self.current_player_to_bet + 1) % len(self.players)
-        print(f'Setting bets')
-        print("Bets:")
         players =  self.players[self.current_player_to_bet:]
         players += self.players[:self.current_player_to_bet]
         for i, player in enumerate(players):
@@ -163,8 +138,6 @@ class Game:
             
             # Create a closure by passing the response_event to the callback function
             callback = lambda response: player.set_bet(response, response_event)
-            
-            print(f'Waiting betting of {player.username}')
             
             # Emit the 'bet' event to the specific player and pass the callback function
             emit('bet', player.username, to=player.connection_id, callback=callback)
@@ -178,29 +151,20 @@ class Game:
                 bet = response_event.wait()
             
             if bet is None: player.bet = 0
-            print('My bet, ', player.username)
             emit('message', f"{player.username}: bet {player.bet}", to=player.room_id)
     
     def winner_of_turn(self):
-        print([str(card) for card in self.cards_in_table])
         cards = self.cards_in_table
         drop = self.current_player_to_drop
-        print(f'{self.players[drop].username} ({self.current_player_to_drop}) is dropping')
         cards = cards[len(cards)-drop:]+cards[:len(cards)-drop]
-        print([str(card) for card in cards])
         highest_card = cards[0]
         winner = 0
         
         for i,card in enumerate(cards):
             if card > highest_card:
-                print("Maior - ", card)
-                print(i)
-                print(i)
                 highest_card = card
                 winner=i
         self.players[winner].score_in_turn += 1
-        print(f'{self.players[winner].username} won this turn')
-        print()
         emit('winner-card', str(highest_card), to=self.room_id)
         
         # Update the current player index to move to the next player
@@ -210,12 +174,10 @@ class Game:
         # Update the current player index to move to the next player
         self.current_player_to_drop = self.current_player_to_bet
         for turn in range(n_cards):
-            print(f'Selecting cards ({turn+1}/{n_cards})')
             self.cards_in_table = []
             players =  self.players[self.current_player_to_drop:]
             players += self.players[:self.current_player_to_drop]
             for player in players:
-                print(f'Waiting picking of {player.username}')
                 card_played = None
                 while not card_played:
                     # Set up an event to wait for the response or a timeout
@@ -229,14 +191,10 @@ class Game:
                 
                     # Wait for the response or timeout after a certain period
                     card_played = response_event.wait()
-                    print(card_played)
                 
                 # Overwrite player's hand
                 hand = [str(card) for card in player.hand]
                 emit('hand', hand, to=player.connection_id)
-                
-                
-                print(' ',player.username, ' - ',card_played)
                 
                 # Send the new table to players
                 self.cards_in_table.append(card_played)
@@ -251,17 +209,13 @@ class Game:
         self.turn(n_cards)
         for player in self.players:
             player.check_points()
-            player.print_score()
         score = [f'{player.username}: {player.score}' for player in self.players]
         emit('score', score, to=self.room_id)
 
     def run(self):
-        print(f'Starting game - {self.room_id}')
         self.set_matches()
         while(len(self.matches)!=0):
-            print(f'Match {len(self.matches)}')
             self.initiateRound(self.matches.pop(0))
-            print('----------------------------------------')
         for player in self.players:
             player.print_score()
 
@@ -284,7 +238,6 @@ class Player:
         else:
             self.bet = bet
         # Set the event to signal that the response has been received
-        print('My bet, ', self.username)
         response_event.send(self.bet)
             
     def select_card(self, card, response_event, cards_in_table):
@@ -297,7 +250,6 @@ class Player:
             response_event.send(None)
             
     def is_moviment_valid(self, card_slected, cards_in_table):
-        print()
         if len(cards_in_table) == 0:
             return True
         first_card = cards_in_table[0]
@@ -318,9 +270,6 @@ class Player:
             self.score -= abs(self.bet-self.score_in_turn)
         self.bet = -1
         self.score_in_turn = 0
-            
-    def print_score(self):
-        print(f'{self.username} = {self.score}')
         
         
 class Deck:
@@ -364,7 +313,6 @@ class Card:
 
 
     def __gt__(self,other):
-        print(self, other)
         if self.suit == other.suit:
             if int(self.value) == 1:
                 return True
