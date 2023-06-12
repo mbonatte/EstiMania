@@ -115,11 +115,27 @@ socket.on('hand', function(userCards) {
 });
 
 socket.on('score', function(users) {
-	var userListHTML = '';
-	for (var i = 0; i < users.length; i++) {
-		userListHTML += '<p>' + users[i] + '</p>';
-	}
-	$('#scoreArea').html(userListHTML);
+	// Display player information in the scoreArea tbody
+	var tbody = document.querySelector("#scoreArea tbody");
+	tbody.innerHTML = ""; // Clear the existing content
+
+	users.forEach(function(player) {
+		var playerRow = document.createElement("tr");
+
+		var nameCell = document.createElement("td");
+		nameCell.textContent = player.name;
+		playerRow.appendChild(nameCell);
+
+		var betCell = document.createElement("td");
+		betCell.textContent = player.bet;
+		playerRow.appendChild(betCell);
+
+		var winsCell = document.createElement("td");
+		winsCell.textContent = player.wins;
+		playerRow.appendChild(winsCell);
+
+		tbody.appendChild(playerRow);
+	});
 });
 
 socket.on('winner-card', function(card) {

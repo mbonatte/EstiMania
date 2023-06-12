@@ -66,9 +66,7 @@ def handle_join_room(room_id, username):
     players[request.sid] = Player(request.sid, room_id=room_id, username=username)
     rooms_available[room_id].append(request.sid)
     emit('message', f'{username} has connected!', to=room_id)
-
-    score = [f'{player.username}' for player in players.values() if player.room_id==room_id]
-    emit('score', score, to=room_id)
+    send_score(players.values(), room_id)
 
 @socketio.on('message')
 def handle_message(data):
@@ -93,15 +91,25 @@ def handle_disconnect():
         room_id = players[request.sid].room_id
         
         emit('message', f'{username} has disconnected!', to=room_id)
-        score = [f'{player.username}' for player in players.values() if player.room_id==room_id]
-        emit('score', score, to=room_id)
+        send_score(players.values(), room_id)
         
         leave_room(room_id)
         del players[request.sid]
         rooms_available[room_id].remove(request.sid)
         if len(rooms_available[room_id]) == 0:
             del rooms_available[room_id]
-        
+
+def send_score(players, room_id):
+    score = []
+    for player in players:
+        if player.room_id==room_id:
+            content = {
+                'name': player.username,
+                'bet': player.bet,
+                'wins': player.score_in_turn
+            }
+            score.append(content)
+    emit('score', score, to=room_id)
 
 class Game:
 
@@ -151,7 +159,7 @@ class Game:
                 bet = response_event.wait()
             
             if bet is None: player.bet = 0
-            emit('message', f"{player.username}: bet {player.bet}", to=player.room_id)
+            send_score(self.players, self.room_id)
     
     def winner_of_turn(self):
         cards = self.cards_in_table
@@ -166,6 +174,7 @@ class Game:
                 winner=i
         self.players[winner].score_in_turn += 1
         emit('winner-card', str(highest_card), to=self.room_id)
+        send_score(self.players, self.room_id)
         
         # Update the current player index to move to the next player
         self.current_player_to_drop = winner
@@ -209,8 +218,6 @@ class Game:
         self.turn(n_cards)
         for player in self.players:
             player.check_points()
-        score = [f'{player.username}: {player.score}' for player in self.players]
-        emit('score', score, to=self.room_id)
 
     def run(self):
         self.set_matches()
@@ -228,7 +235,7 @@ class Player:
         else:
             self.username = username
         self.hand = []
-        self.bet = -1
+        self.bet = 0
         self.score = 0
         self.score_in_turn = 0
 
@@ -268,7 +275,7 @@ class Player:
                 self.score += 2*self.bet
         else:
             self.score -= abs(self.bet-self.score_in_turn)
-        self.bet = -1
+        self.bet = 0
         self.score_in_turn = 0
         
         
