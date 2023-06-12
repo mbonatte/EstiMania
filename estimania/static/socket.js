@@ -66,23 +66,35 @@ socket.on('pick', function(username, callback) {
     }
 });
 
-socket.on('table', function(tableCards) {
+socket.on('table', function(data) {
 	var tableArea = document.getElementById('tableArea');
 	
 	// Clear the existing content of tableArea
 	tableArea.innerHTML = '';
 	
+	tableCards = data.table;
+	playersName = data.names;
+	
 	// Generate HTML code for each card and append it to tableArea
 	for (var i = 0; i < tableCards.length; i++) {
 		var card = tableCards[i];
+		var playerName = playersName[i];
+		
 		var cardWrapper = document.createElement('div');
 		cardWrapper.className = 'card-wrapper';
+		
 		var cardElement = document.createElement('div');
 		cardElement.id = card;
 		cardElement.className = 'card';
 		cardElement.textContent = card;
+		
+		var playerNameElement = document.createElement('div');
+        playerNameElement.className = 'player-name';
+        playerNameElement.textContent = playerName;
+		
 		cardWrapper.appendChild(cardElement);
-		tableArea.appendChild(cardWrapper)
+		cardWrapper.appendChild(playerNameElement);
+		tableArea.appendChild(cardWrapper);
 		
 		// Display card
 		playerCard1 = new Card(card);

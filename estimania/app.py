@@ -208,7 +208,8 @@ class Game:
                 # Send the new table to players
                 self.cards_in_table.append(card_played)
                 table = [str(card) for card in self.cards_in_table]
-                emit('table', table, to=player.room_id)
+                names = [_.username for _ in players]
+                emit('table', {'table': table, 'names': names}, to=player.room_id)
             self.winner_of_turn()
     
     def initiateRound(self,n_cards):
