@@ -141,6 +141,8 @@ class Game:
         players =  self.players[self.current_player_to_bet:]
         players += self.players[:self.current_player_to_bet]
         for i, player in enumerate(players):
+            emit('turn', player.username, to=self.room_id)
+            
             # Set up an event to wait for the response or a timeout
             response_event = eventlet.event.Event()
             
@@ -187,6 +189,7 @@ class Game:
             players =  self.players[self.current_player_to_drop:]
             players += self.players[:self.current_player_to_drop]
             for player in players:
+                emit('turn', player.username, to=self.room_id)
                 card_played = None
                 while not card_played:
                     # Set up an event to wait for the response or a timeout

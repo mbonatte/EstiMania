@@ -34,16 +34,13 @@ socket.on('remove_start_game_btn', function(msg) {
 });
 
 socket.on('bet', function(username, callback) {
-	console.log('initiaing betting')
 	showBetInputForm(function(bet) {
 		callback(bet);
 	});
-	console.log('bet finished')
 });
 
 
 socket.on('pick', function(username, callback) {
-	socket.send({username: username, message: 'is choosing card'});
 	//alert('Please choose your card!');
 	bringAttention()
 	
@@ -60,7 +57,6 @@ socket.on('pick', function(username, callback) {
             disableCardSelection();
 
             // Send the selected card back to the server
-			console.log('Clicked card:', clickedCard);
             callback(clickedCard);
         });
     }
@@ -103,7 +99,6 @@ socket.on('table', function(data) {
 });
 
 socket.on('hand', function(userCards) {
-	console.log('cards dealing')
 	var handArea = document.getElementById('handArea');
 	// Clear the existing content of userHandArea
 	handArea.innerHTML = '';	
@@ -123,7 +118,6 @@ socket.on('hand', function(userCards) {
 		playerCard1 = new Card(card);
 		playerCard1.displayCard(cardElement,true);
 	}
-	console.log('cards showing')
 });
 
 socket.on('score', function(users) {
@@ -145,19 +139,38 @@ socket.on('score', function(users) {
 		var winsCell = document.createElement("td");
 		winsCell.textContent = player.wins;
 		playerRow.appendChild(winsCell);
+		
+		// Set the data-player attribute with the player's name
+        playerRow.setAttribute("data-player", player.name);
 
 		tbody.appendChild(playerRow);
 	});
 });
 
+socket.on('turn', function(player) {
+	// Get all the score table rows
+    var rows = document.querySelectorAll("#scoreArea tbody tr");
+
+    // Clear the background color from all rows
+    rows.forEach(function(row) {
+        row.style.backgroundColor = "";
+    });
+	
+    // Get the score table row for the player
+    var playerRow = document.querySelector("#scoreArea tbody tr[data-player='" + player + "']");
+
+    // Add the styles to highlight the player's turn
+	playerRow.style.backgroundColor = "red";
+	//playerRow.style.border = '5px red solid';
+    //playerRow.style.animation = 'highlight 1s infinite';
+});
+
 socket.on('winner-card', function(card) {
 	const winner_card = document.getElementById(card);
-	console.log(card)
-	console.log(winner_card)
+	winner_card.style.border = '5px red solid';
 	winner_card.style.border = '5px red solid';
 	winner_card.style.animation =  'highlight 1s infinite';
 });
-
 
 $('form#chatForm').submit(function(event) {
 	event.preventDefault();
