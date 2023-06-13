@@ -131,7 +131,7 @@ class Game:
     def deal(self,n_cards):
         deck = Deck()
         for player in self.players:
-            player.hand = deck.deal(n_cards)
+            player.hand = sorted(deck.deal(n_cards), reverse=True)
             hand = [str(card) for card in player.hand]
             emit('hand', hand, to=player.connection_id)
     
