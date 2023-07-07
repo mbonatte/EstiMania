@@ -111,6 +111,18 @@ def send_score(players, room_id):
             score.append(content)
     emit('score', score, to=room_id)
 
+def send_final_score(players, room_id):
+    scores = []
+    for player in players:
+        if player.room_id==room_id:
+            content = {
+                'name': player.username,
+                'score': player.score
+            }
+            scores.append(content)
+    scores = sorted(scores, key=lambda d: d['score'], reverse=True)
+    emit('final-score', scores, to=room_id)
+
 class Game:
 
     def __init__(self, room_id, players=None):
@@ -122,8 +134,7 @@ class Game:
         self.current_player_to_drop = 0
     
     def set_matches(self):
-        #from math import trunc
-        #n_matches = trunc(52/self.numberOfPlayers)
+        #n_matches = 52 // self.numberOfPlayers
         n_matches = 4
         self.matches = [i+1 for i in range(n_matches)]
         self.matches += ([i for i in range(n_matches,0,-1)])
@@ -212,7 +223,7 @@ class Game:
                 self.cards_in_table.append(card_played)
                 table = [str(card) for card in self.cards_in_table]
                 names = [_.username for _ in players]
-                emit('table', {'table': table, 'names': names}, to=player.room_id)
+                emit('table', {'table': table, 'names': names}, to=self.room_id)
             self.winner_of_turn()
     
     def initiateRound(self,n_cards):
@@ -227,8 +238,7 @@ class Game:
         self.set_matches()
         while(len(self.matches)!=0):
             self.initiateRound(self.matches.pop(0))
-        for player in self.players:
-            player.print_score()
+        send_final_score(self.players, self.room_id)
 
 class Player:
     def __init__(self, connection_id, room_id=None, username=None):

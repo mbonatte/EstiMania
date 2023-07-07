@@ -288,4 +288,27 @@ BODY {
 }
 
 
+.final-score-popup {
+  position: fixed;
+  top: 0;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  height: 100%; 
+  background-color: rgba(76, 11, 174, 0.9);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.final-score-table {
+  background-color: white;
+  padding: 50px;
+  border-radius: 5px;
+  max-width: 500px;
+}
+
+.final-score-popup.show {
+  display: flex;
+}
 

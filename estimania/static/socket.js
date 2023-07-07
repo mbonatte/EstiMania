@@ -172,6 +172,54 @@ socket.on('winner-card', function(card) {
 	winner_card.style.animation =  'highlight 1s infinite';
 });
 
+socket.on('final-score', function(scores) {
+	// Create the score popup element
+	var scorePopup = document.createElement("div");
+	scorePopup.id = "scorePopup";
+	scorePopup.classList.add("final-score-popup");
+	scorePopup.classList.add("show");
+	
+	// Create the table element
+	var scoreTable = document.createElement("table");
+	scoreTable.classList.add("final-score-table");
+	  
+	// Create the table body element
+	var scoreTableBody = document.createElement("tbody");
+	
+	// Create the columns name
+	var row = document.createElement("tr");
+	var nameCell = document.createElement("td");
+	var scoreCell = document.createElement("td");
+	nameCell.textContent = "Name";
+	scoreCell.textContent = "Score";
+	row.appendChild(nameCell);
+	row.appendChild(scoreCell);
+	scoreTableBody.appendChild(row);
+
+	scores.forEach(function(score) {
+		var row = document.createElement("tr");
+		var nameCell = document.createElement("td");
+		var scoreCell = document.createElement("td");
+
+		nameCell.textContent = score.name;
+		scoreCell.textContent = score.score;
+
+		row.appendChild(nameCell);
+		row.appendChild(scoreCell);
+		scoreTableBody.appendChild(row);
+	});
+	
+	// Append the table body to the table
+	scoreTable.appendChild(scoreTableBody);
+
+	// Append the table to the score popup
+	scorePopup.appendChild(scoreTable);
+	
+	// Clear the existing content and append the score popup to the document body
+	//document.body.innerHTML = "";
+	document.body.appendChild(scorePopup);
+});
+
 $('form#chatForm').submit(function(event) {
 	event.preventDefault();
 	var messageInput = $('input#message');
