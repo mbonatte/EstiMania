@@ -135,7 +135,7 @@ class Game:
     
     def set_matches(self):
         #n_matches = 52 // self.numberOfPlayers
-        n_matches = 4
+        n_matches = 1
         self.matches = [i+1 for i in range(n_matches)]
         self.matches += ([i for i in range(n_matches,0,-1)])
     
@@ -233,10 +233,39 @@ class Game:
         self.turn(n_cards)
         for player in self.players:
             player.check_points()
+            
+    def finalRound(self):
+        cards = []
+        deck = Deck()
+        
+        for player in self.players:
+            player.hand = deck.deal(1)
+            cards.append(player.hand[0])
+        
+        for player in self.players:
+            table = [str(this_player.hand[0]) for this_player in self.players if this_player != player]
+            names = [this_player.username for this_player in self.players if this_player != player]
+            emit('table', {'table': table, 'names': names}, to=player.connection_id)
+        
+        self.setBets()
+        
+        highest_card = cards[0]
+        winner = 0
+        for i,card in enumerate(cards):
+            if card > highest_card:
+                highest_card = card
+                winner=i
+        self.players[winner].score_in_turn += 1
+        
+        for player in self.players:
+            player.check_points()
 
     def run(self):
         self.set_matches()
         while(len(self.matches)!=0):
+            if (len(self.matches)==1):
+                self.finalRound()
+                break
             self.initiateRound(self.matches.pop(0))
         send_final_score(self.players, self.room_id)
 
