@@ -134,8 +134,7 @@ class Game:
         self.current_player_to_drop = 0
     
     def set_matches(self):
-        #n_matches = 52 // self.numberOfPlayers
-        n_matches = 1
+        n_matches = 52 // len(self.players)
         self.matches = [i+1 for i in range(n_matches)]
         self.matches += ([i for i in range(n_matches,0,-1)])
     
