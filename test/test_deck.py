@@ -1,7 +1,7 @@
 import unittest
 import random
 
-from estimania.app import Deck
+from estimania.deck import Deck
 
 class TestDeck(unittest.TestCase):
 

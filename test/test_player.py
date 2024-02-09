@@ -1,6 +1,8 @@
 import unittest
 
-from estimania.app import Player, Card
+from estimania.player import Player
+from estimania.card import Card
+
 from unittest.mock import Mock
 
 class TestPlayer(unittest.TestCase):

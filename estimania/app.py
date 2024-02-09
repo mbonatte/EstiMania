@@ -1,10 +1,14 @@
-import random
 import eventlet
 eventlet.monkey_patch()
 
-from uuid import uuid4
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
+
+from uuid import uuid4
+
+from .card import Card
+from .deck import Deck
+from .player import Player
 
 # Initialize Flask and Flask-SocketIO
 app = Flask(__name__)
@@ -35,6 +39,8 @@ def create_room():
     
     # Extract room details from the POST request
     room_id = request.json.get('roomName', uuid4().hex)
+    if room_id == '':
+        room_id = uuid4().hex
     
     # Register the new room
     rooms_available[room_id] = []
@@ -151,6 +157,7 @@ def send_final_score(players, room_id):
             scores.append(content)
     scores = sorted(scores, key=lambda d: d['score'], reverse=True)
     emit('final-score', scores, to=room_id)
+
 
 class Game:
 
@@ -296,119 +303,6 @@ class Game:
                 break
             self.initiateRound(self.matches.pop(0))
         send_final_score(self.players, self.room_id)
-
-class Player:
-    def __init__(self, connection_id, room_id=None, username=None):
-        self.connection_id = connection_id
-        self.room_id = room_id
-        if username==None:
-            self.username = uuid4().hex
-        else:
-            self.username = username
-        self.hand = []
-        self.bet = 0
-        self.score = 0
-        self.score_in_turn = 0
-
-    def set_bet(self, bet, response_event):
-        if (bet==None):
-            self.bet = 0
-        else:
-            self.bet = bet
-        # Set the event to signal that the response has been received
-        response_event.send(self.bet)
-            
-    def select_card(self, card, response_event, cards_in_table):
-        card = Card.convert_str_to_Card(card)
-        if self.is_moviment_valid(card, cards_in_table):
-            self.hand.remove(card)
-            response_event.send(card)
-        else:
-            emit('error', "Card not valid!", to=self.connection_id)
-            response_event.send(None)
-            
-    def is_moviment_valid(self, card_slected, cards_in_table):
-        if len(cards_in_table) == 0:
-            return True
-        first_card = cards_in_table[0]
-        if card_slected.suit == first_card.suit:
-            return True
-        for card in self.hand:
-            if card.suit == first_card.suit:
-                return False
-        return True
-    
-    def check_points(self):
-        if self.bet == self.score_in_turn:
-            if self.bet==0:
-                self.score += 1
-            else:
-                self.score += 2*self.bet
-        else:
-            self.score -= abs(self.bet-self.score_in_turn)
-        self.bet = 0
-        self.score_in_turn = 0
-        
-        
-class Deck:
-    def __init__(self):
-        self.deck = []
-        self.suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
-        self.ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-        self.creat_deck()
-        
-    def creat_deck(self):
-        for suit in self.suits:
-            for rank in self.ranks:
-                self.deck.append(Card(rank, suit))
-        random.shuffle(self.deck)
-    
-    def deal(self,n_cards):
-        cards = []
-        for i in range(n_cards):
-            cards.append(self.deck.pop(0))
-        return cards
-        
-class Card:
-
-    def convert_str_to_Card(name):
-        value = name.split()[0]
-        suit = name.split()[2]
-        return Card(value, suit)
-        
-    def __init__(self, value, suit):
-        self.value = str(value)
-        self.suit = str(suit)
-        
-    def __str__ (self):
-        return f'{self.value} of {self.suit}'
-    
-    def __eq__(self, other):
-        if isinstance(other, Card):
-            return (self.value == other.value and
-                    self.suit == other.suit)
-        return False
-
-    def __gt__(self,other):
-        if self.suit == other.suit:
-            if int(self.value) == 1:
-                return True
-            if int(other.value) == 1:
-                return False
-            if int(self.value) > int(other.value):
-                return True
-            else:
-                return False
-        else:
-            if self.suit == 'Clubs':
-                return False
-            if self.suit == 'Diamonds':
-                return True
-            if self.suit == 'Spades' and other.suit != 'Diamonds':
-                return True
-            if self.suit == 'Hearts' and other.suit == 'Clubs':
-                return True
-            return False
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

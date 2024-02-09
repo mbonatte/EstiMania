@@ -1,6 +1,6 @@
 import unittest
 
-from estimania.app import Card
+from estimania.card import Card
 
 class TestCard(unittest.TestCase):
     

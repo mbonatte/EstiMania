@@ -11,8 +11,8 @@
   </div>
 
   <div class="form-group">
-    <label for="room">Room Name:</label>
-	<input type="text" id="roomID" name="roomID" required>
+    <label for="room-id">Room Name:</label>
+	<input type="text" id="room-id" name="room" required>
   </div>
 
   <div class="form-group">
@@ -29,7 +29,7 @@
 		
 		// Get form input values
 		var username = document.getElementById('username').value;
-		var roomName = document.getElementById('roomID').value;
+		var roomName = document.getElementById('room-id').value;
 		var pin = document.getElementById('pin').value;
 		
 		// Create a data object with the form values
@@ -56,6 +56,7 @@
 		.then(function(data) {
 			// Handle the response and redirect to the new room
 			var roomID = data.room_id;
+            console.log(data);
 			window.location.href = '/rooms/' + roomID; // Redirect to the new room
 		})
 		.catch(function(error) {
