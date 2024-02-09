@@ -51,8 +51,10 @@ class TestCard(unittest.TestCase):
     def test_greater_lower_ranks(self):
         card_1 = Card(1, 'Clubs')
         card_2 = Card(2, 'Clubs')
-        self.assertGreater(card_1, card_2)
-        self.assertLess(card_2, card_1)
+        self.assertTrue(card_1 > card_2)
+        self.assertFalse(card_1 < card_2)
+        self.assertFalse(card_2 > card_1)
+        self.assertTrue(card_2 < card_1)
         
         card_1 = Card(1, 'Hearts')
         card_2 = Card(2, 'Hearts')

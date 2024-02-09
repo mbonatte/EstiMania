@@ -360,11 +360,12 @@ class Card:
                     self.suit == other.suit)
         return False
 
-
     def __gt__(self,other):
         if self.suit == other.suit:
             if int(self.value) == 1:
                 return True
+            if int(other.value) == 1:
+                return False
             if int(self.value) > int(other.value):
                 return True
             else:
