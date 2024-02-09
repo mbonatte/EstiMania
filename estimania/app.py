@@ -1,18 +1,17 @@
-import time
 import random
 import eventlet
 eventlet.monkey_patch()
 
 from uuid import uuid4
-
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
+# Initialize Flask and Flask-SocketIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 socketio = SocketIO(app)
 
-# Server variables
+# Global variables to store player and room information
 players = {}
 rooms_available = {}
 
@@ -21,94 +20,124 @@ rooms_available = {}
 @app.route('/home')
 @app.route('/about')
 def index():
+    """
+    Route to serve the main page.
+    """
     return render_template('index.html')
     
 @app.route('/create_room', methods=['GET', 'POST'])
 def create_room():
+    """
+    Route to create a new room.
+    """
     if request.method == 'GET':
         return render_template('create_room.html')
     
-    username = request.json['username']
-    room_id = request.json['roomName']
-    pin = request.json['pin']
+    # Extract room details from the POST request
+    room_id = request.json.get('roomName', uuid4().hex)
     
-    if room_id == '':
-        room_id = uuid4().hex
-    
-    # Add room to rooms available
+    # Register the new room
     rooms_available[room_id] = []
+    
+    # username = request.json['username']
+    # pin = request.json['pin']
 
     # Return the room information as a response
     response = {'room_id': room_id}
     return jsonify(response)
     
-@app.route('/join_room')
+app.route('/join_room')
 def join_available_room():
+    """
+    Route to join an available room.
+    """
     return render_template('join_room.html')
 
 @app.route('/browse_rooms')
 def browse_rooms():
+    """
+    Route to browse available rooms.
+    """
     return render_template('browse_rooms.html', rooms=rooms_available)
 
 @app.route('/rooms/<room_id>')
-def rooms(room_id):
+def room(room_id):
+    """
+    Route to access a specific room.
+    """
     if room_id in rooms_available:
         return render_template('room.html', room_id=room_id)
     return jsonify({'error': 'No room found'}), 404
 
 @socketio.on('connect')
-def handle_connect(): 
+def handle_connect():
+    """
+    Handle client connection to the WebSocket.
+    """
     pass
     
 @socketio.on('join_room')
 def handle_join_room(room_id, username):
+    """
+    Handle a player joining a room.
+    """
     join_room(room_id)
     players[request.sid] = Player(request.sid, room_id=room_id, username=username)
     rooms_available[room_id].append(request.sid)
     emit('message', f'{username} has connected!', to=room_id)
-    send_score(players.values(), room_id)
+    send_score(list(players.values()), room_id)
 
 @socketio.on('message')
 def handle_message(data):
-    username = players[request.sid].username
-    room_id = players[request.sid].room_id
-    message = data['message']
-    emit('message', f'{username}: {message}', to=room_id)
+    """
+    Handle incoming chat messages.
+    """
+    player = players[request.sid]
+    emit('message', f'{player.username}: {data["message"]}', to=player.room_id)
 
 @socketio.on('start_game')
 def handle_start_game():
+    """
+    Handle the event to start a game in a room.
+    """
+    if request.sid not in players:
+        return  # Handle cases where the player is not registered
+    
     room_id = players[request.sid].room_id
-    players_in_room = [players[sid] for sid in socketio.server.manager.rooms['/'][room_id]]
+    
+    # Notify players in the room that the game has started
     emit('message', 'The game has started!', to=room_id)
     emit('remove_start_game_btn', '', to=room_id)
+
+    # Gather players in the room
+    players_in_room = [players[sid] for sid in socketio.server.manager.rooms['/'][room_id]]
+    
+    # Start the game
     game = Game(room_id, players_in_room)
     game.run()
 
 @socketio.on('disconnect')
 def handle_disconnect():
+    """
+    Handle client disconnection.
+    """
     if request.sid in players:
-        username = players[request.sid].username
-        room_id = players[request.sid].room_id
-        
-        emit('message', f'{username} has disconnected!', to=room_id)
+        player = players[request.sid]
+        room_id = player.room_id
+        emit('message', f'{player.username} has disconnected!', to=room_id)
         send_score(players.values(), room_id)
-        
         leave_room(room_id)
         del players[request.sid]
         rooms_available[room_id].remove(request.sid)
-        if len(rooms_available[room_id]) == 0:
-            del rooms_available[room_id]
+        if not rooms_available[player.room_id]:
+            del rooms_available[player.room_id]
 
 def send_score(players, room_id):
-    score = []
-    for player in players:
-        if player.room_id==room_id:
-            content = {
-                'name': player.username,
-                'bet': player.bet,
-                'wins': player.score_in_turn
-            }
-            score.append(content)
+    """
+    Emit the current score to players in a room.
+    """
+    score = [{'name': p.username, 'bet': p.bet, 'wins': p.score_in_turn}
+             for p in players if p.room_id == room_id]
     emit('score', score, to=room_id)
 
 def send_final_score(players, room_id):
