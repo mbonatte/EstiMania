@@ -6,9 +6,13 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from uuid import uuid4
 
-from .game import Game, send_score, send_final_score
-from .network_player import NetworkPlayer
-from .bot_player import BotPlayer
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from estimania.game import Game, send_score, send_final_score
+from estimania.network_player import NetworkPlayer
+from estimania.bot_player import BotPlayer
 
 # Initialize Flask and Flask-SocketIO
 app = Flask(__name__)
@@ -99,7 +103,7 @@ def handle_message(data):
     emit('message', f'{player.username}: {data["message"]}', to=player.room_id)
 
 @socketio.on('start_game')
-def handle_start_game():
+def handle_start_game(data):
     """
     Handle the event to start a game in a room.
     """
@@ -114,9 +118,11 @@ def handle_start_game():
 
     # Gather players in the room
     players_in_room = [app.config['PLAYERS'][sid] for sid in socketio.server.manager.rooms['/'][room_id]]
+
+    max_turns = data.get('max_turns')
     
     # Start the game
-    game = Game(room_id, players_in_room)
+    game = Game(room_id, players=players_in_room, max_turns=max_turns)
     game.run()
 
 @socketio.on('disconnect')

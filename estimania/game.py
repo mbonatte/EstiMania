@@ -25,9 +25,10 @@ def send_final_score(players, room_id):
 
 class Game:
 
-    def __init__(self, room_id, players=None):
+    def __init__(self, room_id, players=None, max_turns=5):
         self.room_id = room_id
         self.players = players or [current_app.config['PLAYERS'][sid] for sid in current_app.config['ROOMS_AVAILABLE'][room_id]]
+        self.max_turns = max_turns
         self.matches = []
         self.cards_in_table = []
         self.current_player_to_bet = -1
@@ -35,6 +36,8 @@ class Game:
     
     def set_matches(self):
         n_matches = 52 // len(self.players)
+        if n_matches > self.max_turns:
+            n_matches = self.max_turns
         self.matches = [i+1 for i in range(n_matches)]
         self.matches += ([i for i in range(n_matches,0,-1)])
     

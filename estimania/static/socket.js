@@ -229,7 +229,10 @@ $('form#chatForm').submit(function(event) {
 });
 
 $('button#startGameButton').click(function(event) {
-	socket.emit('start_game');
+    var maxTurns = prompt("Enter the maximum number of turns:");
+    if (maxTurns != null && maxTurns != "") {
+        socket.emit('start_game', { max_turns: parseInt(maxTurns) });
+    }
 });
 
 $('button#drawCardButton').click(function(event) {
