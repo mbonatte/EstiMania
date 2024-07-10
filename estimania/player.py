@@ -1,38 +1,19 @@
-from flask_socketio import emit
+from abc import ABC, abstractmethod
 
-from uuid import uuid4
-
-from .card import Card
-
-class Player:
-    def __init__(self, connection_id, room_id=None, username=None):
-        self.connection_id = connection_id
-        self.room_id = room_id
-        if username==None:
-            self.username = uuid4().hex
-        else:
-            self.username = username
+class Player(ABC):
+    def __init__(self):
         self.hand = []
         self.bet = 0
         self.score = 0
         self.score_in_turn = 0
 
-    def set_bet(self, bet, response_event):
-        if (bet==None):
-            self.bet = 0
-        else:
-            self.bet = bet
-        # Set the event to signal that the response has been received
-        response_event.send(self.bet)
+    @abstractmethod
+    def set_bet(self):
+        pass
             
-    def select_card(self, card, response_event, cards_in_table):
-        card = Card.convert_str_to_Card(card)
-        if self.is_moviment_valid(card, cards_in_table):
-            self.hand.remove(card)
-            response_event.send(card)
-        else:
-            emit('error', "Card not valid!", to=self.connection_id)
-            response_event.send(None)
+    @abstractmethod
+    def select_card(self, card, cards_in_table):
+        pass
             
     def is_moviment_valid(self, card_slected, cards_in_table):
         if len(cards_in_table) == 0:
