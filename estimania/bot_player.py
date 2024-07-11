@@ -6,9 +6,8 @@ from .player import Player
 class BotPlayer(Player):
     def __init__(self, room_id=None):
         super().__init__()
-        # self.connection_id = connection_id
         self.room_id = room_id
-        self.username = uuid4().hex
+        self.username = 'BOT - ' + uuid4().hex[:4]
 
     def set_bet(self):
         self.bet = random.randint(0, len(self.hand))

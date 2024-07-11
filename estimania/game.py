@@ -84,6 +84,11 @@ class Game:
                 # Valid card selected
                 return card_played
     
+    def send_table_to_players(self):
+        table = [str(card) for card in self.cards_in_table]
+        names = [p.username for p in self.players]
+        emit('table', {'table': table, 'names': names}, to=self.room_id)
+    
     def turn(self,n_cards): #This should be in the GameOnline class
         # Update the current player index to move to the next player
         self.current_player_to_drop = self.current_player_to_bet
@@ -97,9 +102,8 @@ class Game:
                 
                 # Send the new table to players
                 self.cards_in_table.append(card_played)
-                table = [str(card) for card in self.cards_in_table]
-                names = [_.username for _ in players]
-                emit('table', {'table': table, 'names': names}, to=self.room_id)
+
+                self.send_table_to_players()
             
             self.winner_of_turn()
     
@@ -114,15 +118,22 @@ class Game:
         cards = []
         deck = Deck()
         
-        for player in self.players:
-            player.hand = deck.deal(1)
-            cards.append(player.hand[0])
+        hidden_player_hand = {}
+
         
+        # draw and save the cards
         for player in self.players:
-            table = [str(this_player.hand[0]) for this_player in self.players if this_player != player]
+            hidden_player_hand[player] = deck.deal(1)
+            cards.append(hidden_player_hand[player][0])
+        
+        # send the other players' cards to player
+        for player in self.players:
+            table = [str(hidden_player_hand[this_player][0]) for this_player in hidden_player_hand if this_player != player]
             names = [this_player.username for this_player in self.players if this_player != player]
             
-            emit('table', {'table': table, 'names': names}, to=player.connection_id)
+            if hasattr(player, 'connection_id'):
+                # This is a NetworkPlayer
+                emit('table', {'table': table, 'names': names}, to=player.connection_id)
         
         self.setBets()
         

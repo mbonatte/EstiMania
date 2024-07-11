@@ -116,13 +116,19 @@ def handle_start_game(data):
     emit('message', 'The game has started!', to=room_id)
     emit('remove_start_game_btn', '', to=room_id)
 
-    # Gather players in the room
-    players_in_room = [app.config['PLAYERS'][sid] for sid in socketio.server.manager.rooms['/'][room_id]]
+    # Gather online players in the room
+    online_players_in_room = [app.config['PLAYERS'][sid] for sid in socketio.server.manager.rooms['/'][room_id]]
+
+    # Gather bots in the room
+    bots_in_room = [BotPlayer(room_id) for _ in range(data.get('num_bots'))]
+
+    # Gather bots in the room
+    total_players_in_room = online_players_in_room + bots_in_room
 
     max_turns = data.get('max_turns')
     
     # Start the game
-    game = Game(room_id, players=players_in_room, max_turns=max_turns)
+    game = Game(room_id, players=total_players_in_room, max_turns=max_turns)
     game.run()
 
 @socketio.on('disconnect')
