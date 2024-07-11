@@ -1,0 +1,35 @@
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+nav {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+nav ul {
+  text-align: right;
+  display: flex;
+  list-style-type: none;
+  margin-right: 1rem;
+}
+
+nav li {
+  margin: auto 1rem;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+nav a:hover {
+  color: #ddd;
+}
+
+.logo img {
+  height: 40px;
+  width: auto;
+}

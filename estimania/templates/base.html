@@ -1,51 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-	<title>EstiMania - Card game</title>
-  </head>
-  <body>
-    <nav>
-		<a href="/home">
-			<img src="{{ url_for('static', filename='logo_menu.png') }}" alt="logo" />
-		</a>
-		<label  class="menu-toggle" onclick="toggleMobileMenu(this)">
-			<span></span>
-			<span></span>
-			<span></span>
-		</label >
-		<ul id="menu" class="menu">
-			<li><a href="/create_room">Create a room</a></li>
-			<li><a href="/join_room">Join a room</a></li>
-			<li><a href="/browse_rooms">Browse Rooms</a></li>
-			<li><a href="/about">About</a></li>
-		</ul>
-    </nav>
-	<div id="mobile-menu" class="mobile-menu" style="display: none">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> 
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='style_menu.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
+		<link rel="stylesheet" href="{{ url_for('static', filename='style_mobile.css') }}" />
+		<title>EstiMania - Card game</title>
+	</head>
+<body>
+	<nav>
+		<div class="nav-container">
+			<a href="/home" class="logo">
+				<img src="{{ url_for('static', filename='logo_menu.png') }}" alt="logo" />
+			</a>
+			<button class="menu-toggle" onclick="toggleMobileMenu(this)">
+				<span></span>
+				<span></span>
+				<span></span>
+			</button>
+			<ul id="menu" class="menu">
+				<li><a href="/create_room">Create room</a></li>
+				<!-- <li><a href="/join_room">Join room</a></li> -->
+				<li><a href="/browse_rooms">Browse Rooms</a></li>
+				<li><a href="/about">About</a></li>
+			</ul>
+		</div>
+	</nav>
+	
+	<div id="mobile-menu" class="mobile-menu">
 		<a href="/create_room">Create a room</a>
-		<a href="/join_room">Join a room</a>
+		<!-- <a href="/join_room">Join a room</a> -->
 		<a href="/browse_rooms">Browse Rooms</a>
 		<a href="/about">About</a>
 	</div>
-	<hr></hr>
-	<div class="content">
-		<content>
-			{% block content %} {% endblock %}
-		</content>
-    </div>
-  </body>
- <script>
-function toggleMobileMenu() {
-	var mobile_menu = document.getElementById("mobile-menu");
-	if (mobile_menu.style.display === "block") {
-		mobile_menu.style.display = "none";
-	} else {
-		mobile_menu.style.display = "block";
-	}
-}
+
+	<main class="content">
+		{% block content %} {% endblock %}
+	</main>
+</body>
+<script>
+	function toggleMobileMenu() {
+		var mobile_menu = document.getElementById("mobile-menu");
+		mobile_menu.classList.toggle("show");
+    }
  </script>
 </html>
