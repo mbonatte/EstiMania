@@ -39,8 +39,4 @@ class SocketHandler {
     startGame(maxTurns, numBots) {
         this.socket.emit('start_game', { max_turns: maxTurns, num_bots: numBots });
     }
-
-    drawCard() {
-        this.socket.emit('draw_card');
-    }
 }

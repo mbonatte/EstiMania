@@ -84,9 +84,9 @@ class Game:
                 # Valid card selected
                 return card_played
     
-    def send_table_to_players(self):
+    def send_table_to_players(self, players):
         table = [str(card) for card in self.cards_in_table]
-        names = [p.username for p in self.players]
+        names = [p.username for p in players]
         emit('table', {'table': table, 'names': names}, to=self.room_id)
     
     def turn(self,n_cards): #This should be in the GameOnline class
@@ -103,7 +103,7 @@ class Game:
                 # Send the new table to players
                 self.cards_in_table.append(card_played)
 
-                self.send_table_to_players()
+                self.send_table_to_players(players)
             
             self.winner_of_turn()
     

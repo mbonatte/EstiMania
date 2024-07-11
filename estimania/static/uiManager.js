@@ -27,10 +27,6 @@ class UIManager {
                 alert("Please enter valid integer values.");
             }
         });
-
-        document.getElementById('drawCardButton').addEventListener('click', () => {
-            socketHandler.drawCard();
-        });
     }
 
     appendMessage(msg) {
