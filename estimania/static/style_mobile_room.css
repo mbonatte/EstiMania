@@ -1,0 +1,75 @@
+.toggle-button {
+  display: none; /* Hide by default for non-mobile */
+  background-color: rgb(76, 11, 174);
+  color: white;
+  font-size: 1rem;
+  text-decoration: none;
+  padding: 0.3rem 0.8rem;
+  border: none;
+  border-radius: 10px;
+  margin: 0.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-button:hover {
+  background-color: rgb(63, 9, 145);
+}
+
+.toggle-wrapper {
+  display: none; /* Hidden by default */
+}
+
+@media (max-width: 768px) {
+  .toggle-wrapper {
+    display: none;
+  }
+  
+  .toggle-button {
+    display: block;
+  }
+
+  #container {
+    grid-template-areas:
+      "tableArea"
+      "handArea"
+      "scoreButton"
+      "scoreArea"
+      "messageButton"
+      "messageArea";
+  }
+  
+  #scoreToggleButton {
+    grid-area: scoreButton;
+  }
+  
+  #messageToggleButton {
+    grid-area: messageButton;
+  }
+
+  .form-group {
+    width: 100%;
+  }
+
+  .card-wrapper {
+    transform: scale(0.5);
+    width: calc(150px * 0.5);
+    height: calc(214px * 0.5);
+  }
+}
+
+@media (min-width: 769px) {
+  .toggle-button {
+    display: none;
+  }
+  
+  .toggle-wrapper {
+    display: block;
+  }
+
+  .card-wrapper {
+    transform: scale(0.7);
+    width: calc(150px * 0.7);
+    height: calc(214px * 0.7);
+  }
+}

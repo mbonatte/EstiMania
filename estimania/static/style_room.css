@@ -1,8 +1,26 @@
+/* Define the grid areas for the container */
 #container {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: auto auto;
+  grid-template-areas:
+    "tableArea tableArea tableArea scoreArea"
+    "handArea handArea handArea messageArea";
   grid-gap: 1rem;
+}
+
+#tableArea {
+  grid-area: tableArea;
+}
+
+#handArea {
+  grid-area: handArea;
+}
+
+#scoreAreaWrapper {
+  grid-area: scoreArea;
+}
+
+#messageWrapper {
+  grid-area: messageArea;
 }
 
 #messageArea, #scoreArea, #tableArea, #handArea {

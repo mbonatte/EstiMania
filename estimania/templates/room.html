@@ -2,27 +2,34 @@
 
 {% block content %}
 <head>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
+	<link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_room.css') }}" />
+
+	<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
     <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>    
 </head>
 <body>
 	<div id="container">
 		<div id="tableArea" ></div>
-		
-		<table id="scoreArea" class="score-table">
-			<thead>
-				<tr>
-				<th>Name</th>
-				<th>Bet</th>
-				<th>Wins</th>
-				</tr>
-			</thead>
-			<tbody></tbody>
-		</table>
-		
+
 		<div id="handArea"></div>
 		
-		<div id="message-container">
+		<button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
+		<div id="scoreAreaWrapper" class="toggle-wrapper">
+			<table id="scoreArea" class="score-table">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Bet</th>
+						<th>Wins</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</div>
+		
+		<button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Messages</button>
+		<div id="messageWrapper" class="toggle-wrapper">
 			<div id="messageArea"></div>
 			<form id="chatForm">
 				<input type="text" id="message" placeholder="Enter your message">
@@ -36,6 +43,45 @@
     </div>
 </body>
 <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
+
+<script>
+    function toggleVisibility(wrapperId, buttonId) {
+        var wrapper = document.getElementById(wrapperId);
+        var button = document.getElementById(buttonId);
+        var contentName = button.getAttribute("data-content");
+        if (wrapper.style.display === "none" || wrapper.style.display === "") {
+            wrapper.style.display = "block";
+            button.textContent = "Hide " + contentName;
+        } else {
+            wrapper.style.display = "none";
+            button.textContent = "Show " + contentName;
+        }
+    }
+
+    function resetVisibilityOnResize() {
+        if (window.innerWidth >= 769) {
+            document.getElementById('scoreAreaWrapper').style.display = 'block';
+            document.getElementById('messageWrapper').style.display = 'block';
+            document.getElementById('scoreToggleButton').style.display = 'none';
+            document.getElementById('messageToggleButton').style.display = 'none';
+        } else {
+            document.getElementById('scoreToggleButton').style.display = 'block';
+            document.getElementById('messageToggleButton').style.display = 'block';
+            toggleVisibility('scoreAreaWrapper', 'scoreToggleButton');
+            toggleVisibility('messageWrapper', 'messageToggleButton');
+        }
+    }
+
+    document.getElementById('scoreToggleButton').onclick = function() {
+        toggleVisibility('scoreAreaWrapper', 'scoreToggleButton');
+    };
+    document.getElementById('messageToggleButton').onclick = function() {
+        toggleVisibility('messageWrapper', 'messageToggleButton');
+    };
+
+    window.addEventListener('resize', resetVisibilityOnResize);
+    window.addEventListener('load', resetVisibilityOnResize);
+</script>
 
 {% endblock %}
 

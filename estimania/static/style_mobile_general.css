@@ -46,18 +46,8 @@
     display: block;
   }
 
-  #container {
-    grid-template-columns: 1fr;
-  }
-
   .form-group {
     width: 100%;
-  }
-
-  .card-wrapper {
-    transform: scale(0.5);
-    width: calc(150px * 0.5);
-    height: calc(214px * 0.5);
   }
 }
 
@@ -66,11 +56,5 @@
     width: 50%;
     margin-left: auto;
     margin-right: auto;
-  }
-
-  .card-wrapper {
-    transform: scale(0.7);
-    width: calc(150px * 0.7);
-    height: calc(214px * 0.7);
   }
 }
