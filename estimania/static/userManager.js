@@ -1,4 +1,4 @@
-class UserManager {
+export default class UserManager {
     constructor() {
         this.username = this.getStoredUsername() || this.promptForUsername();
     }

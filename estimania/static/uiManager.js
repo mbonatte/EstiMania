@@ -1,4 +1,6 @@
-class UIManager {
+import Card from './Card.js';
+
+export default class UIManager {
     constructor() {
         this.messageArea = document.getElementById('messageArea');
         this.tableArea = document.getElementById('tableArea');

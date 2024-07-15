@@ -1,4 +1,4 @@
-class Card {
+export default class Card {
   constructor(card) {
       this.card = card;
       const cardValues = {

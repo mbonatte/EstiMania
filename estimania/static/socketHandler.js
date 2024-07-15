@@ -1,4 +1,4 @@
-class SocketHandler {
+export default class SocketHandler {
     constructor(userManager, uiManager) {
         this.userManager = userManager;
         this.uiManager = uiManager;
