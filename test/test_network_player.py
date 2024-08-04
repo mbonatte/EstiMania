@@ -38,7 +38,7 @@ class TestPlayer(unittest.TestCase):
                 callback(1)
         mock_emit.side_effect = emit_side_effect
         
-        self.player.set_bet()
+        self.player.set_bet([])
 
         mock_emit.assert_called_with('bet', self.player.username, to=self.connection_id, callback=unittest.mock.ANY)
         self.assertEqual(self.player.bet, 1)

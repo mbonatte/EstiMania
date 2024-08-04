@@ -27,7 +27,7 @@ class NetworkPlayer(Player):
         hand_data = [str(card) for card in self._hand]
         emit('hand', hand_data, to=self.connection_id)
     
-    def set_bet(self, timeout=None):       
+    def set_bet(self, bets, timeout=None):
         response_event = Event()
         callback = lambda response: self._handle_bet_response(response, response_event)
         emit('bet', self.username, to=self.connection_id, callback=callback)

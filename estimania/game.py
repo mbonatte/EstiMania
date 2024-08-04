@@ -53,9 +53,13 @@ class Game:
         self.current_player_to_bet = (self.current_player_to_bet + 1) % len(self.players)
         players =  self.players[self.current_player_to_bet:]
         players += self.players[:self.current_player_to_bet]
+
+        bets = len(players) * [-1]
+
         for i, player in enumerate(players):
             emit('turn', player.username, to=self.room_id)
-            player.set_bet()
+            player.set_bet(bets)
+            bets[i] = player.bet
             send_score(self.players, self.room_id)
     
     def winner_of_turn(self):
