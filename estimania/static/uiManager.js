@@ -5,6 +5,7 @@ export default class UIManager {
         this.messageArea = document.getElementById('messageArea');
         this.tableArea = document.getElementById('tableArea');
         this.handArea = document.getElementById('handArea');
+        this.roundArea = document.getElementById("roundArea");
         this.scoreArea = document.querySelector("#scoreArea tbody");
         this.createBetModal();
         this.createFloatingText();
@@ -113,6 +114,11 @@ export default class UIManager {
             this.scoreArea.appendChild(row);
         });
     }
+    
+    updateRound(round) {
+        this.roundArea.innerHTML = round;
+    }
+
 
     highlightPlayerTurn(player) {
         const rows = this.scoreArea.querySelectorAll("tr");

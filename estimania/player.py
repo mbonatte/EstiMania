@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 class Player(ABC):
     def __init__(self):
         self.hand = []
-        self.bet = 0
+        self.bet = None
         self.score = 0
         self.score_in_turn = 0
 
@@ -34,6 +34,6 @@ class Player(ABC):
                 self.score += 2*self.bet
         else:
             self.score -= abs(self.bet-self.score_in_turn)
-        self.bet = 0
+        self.bet = None
         self.score_in_turn = 0
         

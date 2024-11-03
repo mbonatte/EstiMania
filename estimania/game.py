@@ -160,10 +160,10 @@ class Game:
         
         # Iterate through all matches except the final round
         for i, match in enumerate(self.matches[:-1]):
-            emit('message', f'Round {i+1} | {match} cards', to=self.room_id)
+            emit('round', f'Round {i+1} | {match} cards', to=self.room_id)
             self.initiateRound(match)
         
-        emit('message', 'Final Round!', to=self.room_id)
+        emit('round', 'Final Round!', to=self.room_id)
         self.finalRound()
         
         send_final_score(self.players, self.room_id)

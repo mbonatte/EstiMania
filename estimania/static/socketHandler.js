@@ -22,6 +22,7 @@ export default class SocketHandler {
         this.socket.on('table', (data) => this.uiManager.updateTable(data));
         this.socket.on('hand', (userCards) => this.uiManager.updateHand(userCards));
         this.socket.on('score', (users) => this.uiManager.updateScore(users));
+        this.socket.on('round', (round) => this.uiManager.updateRound(round));
         this.socket.on('turn', (player) => this.uiManager.highlightPlayerTurn(player));
         this.socket.on('winner-card', (card) => this.uiManager.highlightWinnerCard(card));
         this.socket.on('final-score', (scores) => this.uiManager.showFinalScore(scores));
