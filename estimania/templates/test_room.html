@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_room.css') }}" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+    <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body data-scenario="{{ scenario }}">
+    <div id="test-controls">
+        <h3>Test Scenarios</h3>
+        <select id="scenarioSelect">
+            <option value="initial">Initial Game State</option>
+            <option value="mid_game">Mid-Game State</option>
+            <option value="betting">Betting Phase</option>
+            <option value="picking">Card Picking Phase</option>
+            <option value="winner">Round Winner State</option>
+            <option value="end_game">End Game State</option>
+        </select>
+        <button id="loadScenario">Load Scenario</button>
+    </div>
+
+    <div id="container">
+        <div id="tableArea"></div>
+        <div id="handArea"></div>
+        
+        <button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
+        <div id="scoreAreaWrapper" class="toggle-wrapper">
+            <div id="roundArea">Round</div>
+            <table id="scoreArea" class="score-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Bet</th>
+                        <th>Wins</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Messages</button>
+        <div id="messageWrapper" class="toggle-wrapper">
+            <div id="messageArea"></div>
+            <form id="chatForm">
+                <input type="text" id="message" placeholder="Enter your message">
+                <input type="submit" value="Send">
+            </form>
+        </div>
+    </div>
+    <div>
+        <button id="startGameButton">Start Game</button>
+    </div>
+</body>
+<script type="module" src="{{ url_for('static', filename='test_main.js') }}"></script>
+
+<script>
+    // Your existing toggle visibility scripts...
+</script>
+{% endblock %}

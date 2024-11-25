@@ -21,7 +21,7 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(self.player.connection_id, self.connection_id)
         self.assertIsNotNone(self.player.username)
         self.assertEqual(self.player.hand, [])
-        self.assertEqual(self.player.bet, 0)
+        self.assertEqual(self.player.bet, None)
         self.assertEqual(self.player.score, 0)
         self.assertEqual(self.player.score_in_turn, 0)
 
@@ -98,7 +98,7 @@ class TestPlayer(unittest.TestCase):
         self.player.score_in_turn = 3
         self.player.check_points()
         self.assertEqual(self.player.score, 6)
-        self.assertEqual(self.player.bet, 0)
+        self.assertEqual(self.player.bet, None)
         self.assertEqual(self.player.score_in_turn, 0)
         
         self.player.score = 0

@@ -10,6 +10,8 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from test_routes import register_test_routes
+
 from estimania.game import Game, send_score, send_final_score
 from estimania.network_player import NetworkPlayer
 from estimania.bot_player import BotPlayer
@@ -20,6 +22,8 @@ app.config['SECRET_KEY'] = 'secret'
 app.config['PLAYERS'] = {}
 app.config['ROOMS_AVAILABLE'] = {}
 socketio = SocketIO(app)
+
+register_test_routes(app, socketio)
 
 @app.route('/')
 @app.route('/home')
