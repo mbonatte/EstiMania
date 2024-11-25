@@ -3,15 +3,18 @@ export default class SocketHandler {
         this.userManager = userManager;
         this.uiManager = uiManager;
         this.socket = null;
+        console.log("Socket Handler initialized.");
     }
 
     initialize() {
         this.socket = io.connect('//' + document.domain + ':' + location.port);
+        console.log("Socket connection initialized.");
         this.setupEventListeners();
     }
 
     setupEventListeners() {
         const roomID = this.getRoomIDFromURL();
+        console.log(`Joining room: ${roomID}`);
         this.socket.emit('join_room', roomID, this.userManager.getUsername());
 
         this.socket.on('error', (msg) => alert(msg));

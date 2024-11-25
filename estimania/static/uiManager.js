@@ -9,6 +9,7 @@ export default class UIManager {
         this.scoreArea = document.querySelector("#scoreArea tbody");
         this.createBetModal();
         this.createFloatingText();
+        console.log("UI Manager initialized.");
     }
 
     initialize(socketHandler) {
@@ -39,6 +40,7 @@ export default class UIManager {
         p.textContent = msg;
         this.messageArea.appendChild(p);
         this.messageArea.scrollTop = this.messageArea.scrollHeight;
+        console.log(`Appended message to chat: ${msg}`);
     }
 
     removeStartGameButton() {
@@ -69,6 +71,7 @@ export default class UIManager {
         const submitBet = () => {
             const bet = parseInt(betInput.value);
             betModal.style.display = 'none';
+            console.log(`Bet submitted: ${bet}`);
             callback(bet);
         };
 
@@ -83,6 +86,7 @@ export default class UIManager {
             const clickedCard = event.target.textContent;
             this.disableCardSelection();
             this.removeFloatingText();
+            console.log(`Card selected: ${clickedCard}`);
             callback(clickedCard);
         };
 
@@ -97,6 +101,7 @@ export default class UIManager {
             const cardWrapper = this.createCardWrapper(card, data.names[index]);
             this.tableArea.appendChild(cardWrapper);
         });
+        console.log(`Cards in Table: ${data.table}`);
     }
 
     updateHand(userCards) {
@@ -105,6 +110,7 @@ export default class UIManager {
             const cardWrapper = this.createCardWrapper(card);
             this.handArea.appendChild(cardWrapper);
         });
+        console.log("Updating hand area with user cards: ", userCards);
     }
 
     updateScore(users) {
@@ -125,6 +131,7 @@ export default class UIManager {
         rows.forEach(row => row.style.backgroundColor = "");
         const playerRow = this.scoreArea.querySelector(`tr[data-player='${player}']`);
         if (playerRow) playerRow.style.backgroundColor = "red";
+        console.log(`It's ${player}' turn`);
     }
 
     highlightWinnerCard(card) {
@@ -176,7 +183,6 @@ export default class UIManager {
         });
         
         contentDiv.appendChild(scoreTable);
-        
         
         // Create header-content div
         const headerContentDiv = document.createElement("div");
