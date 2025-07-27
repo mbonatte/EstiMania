@@ -10,7 +10,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from test_routes import register_test_routes
+from estimania.test_routes import register_test_routes
 
 from estimania.game import Game, send_score, send_final_score
 from estimania.network_player import NetworkPlayer
