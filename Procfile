@@ -1,1 +1,1 @@
-web: gunicorn -b :$PORT estimania.app:app --no-sendfile
+web: gunicorn -k eventlet -w 1 -t 120 -b :$PORT estimania.app:app --no-sendfile
