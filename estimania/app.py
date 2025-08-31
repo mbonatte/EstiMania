@@ -11,19 +11,27 @@ import redis
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from estimania.test_routes import register_test_routes
-from estimania.game import Game, send_score, send_final_score
+from estimania.game_rules import GameRules
+from estimania.game_online import GameOnline, _emit_score
 from estimania.network_player import NetworkPlayer
 from estimania.bot_player import BotPlayer
 
 # === Config ===
-REDIS_URL = "rediss://default:AaWuAAIjcDE1MmVmYmVkYTk4NTE0MTg5ODMwMWQ4NmJmNDdkMWUwY3AxMA@arriving-mudfish-42414.upstash.io:6379"
+REDIS_URL = "rediss://default:AWJsAAIncDEwNmJiYzQyOTIxMGM0ZWQxODFjNjE0ZjJhMTY4YmQyY3AxMjUxOTY@normal-kiwi-25196.upstash.io:6379"
 REDIS_EXPIRE_SECONDS = 3600  # 1 hour
 
 # === App setup ===
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
+
 socketio = SocketIO(app)
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+
+redis_client = redis.Redis.from_url(
+    REDIS_URL,
+    decode_responses=True,
+    socket_connect_timeout=5,
+    socket_keepalive=True,
+)
 
 register_test_routes(app, socketio)
 
@@ -86,7 +94,7 @@ def create_room():
     redis_client.delete(f'room:{room_id}:members')
     return jsonify({'room_id': room_id})
     
-app.route('/join_room')
+@app.route('/join_room')
 def join_available_room():
     """
     Route to join an available room.
@@ -139,7 +147,7 @@ def handle_join_room(room_id, username):
     
     emit('message', f'{username} has connected!', to=room_id)    
     players = get_players_in_room(room_id)
-    send_score(players, room_id)
+    _emit_score(players, room_id)
 
 @socketio.on('message')
 def handle_message(data):
@@ -179,7 +187,9 @@ def handle_start_game(data):
     max_turns = data.get('max_turns')
     
     # Start the game
-    game = Game(room_id, players=total_players_in_room, max_turns=max_turns)
+    game_rules = GameRules(max_turns=max_turns)
+    game = GameOnline(room_id, total_players_in_room, game_rules)
+    
     game.run()
 
 @socketio.on('disconnect')
@@ -196,7 +206,7 @@ def handle_disconnect():
 
     emit('message', f'{username} has disconnected!', to=room_id)
     players = get_players_in_room(room_id)
-    send_score(players, room_id)
+    _emit_score(players, room_id)
     
     leave_room(room_id)
     delete_player(request.sid)
