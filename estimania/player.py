@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from uuid import uuid4
 
 class Player(ABC):
-    def __init__(self):
+    def __init__(self, username=None):
+        self.username = username or uuid4().hex[:4]
         self.hand = []
-        self.bet = None
+        self.bet = -1
         self.score = 0
         self.score_in_turn = 0
 

@@ -12,9 +12,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from estimania.test_routes import register_test_routes
 from estimania.game_rules import GameRules
-from estimania.game_online import GameOnline, _emit_score
+from estimania.game_engine import GameEngine
+from estimania.game_events_socketio import GameSocketEvents
 from estimania.network_player import NetworkPlayer
-from estimania.bot_player import BotPlayer
+from estimania.online_bot_player import OnlineBotPlayer
 
 # === Config ===
 REDIS_URL = "rediss://default:AWJsAAIncDEwNmJiYzQyOTIxMGM0ZWQxODFjNjE0ZjJhMTY4YmQyY3AxMjUxOTY@normal-kiwi-25196.upstash.io:6379"
@@ -60,11 +61,16 @@ def get_players_in_room(room_id):
         data = redis_client.hgetall(f'player:{sid}')
         if data:
             players.append(NetworkPlayer(
+                socketio=socketio,
                 connection_id=data.get('sid'),
                 room_id=data.get('room_id'),
                 username=data.get('username')
             ))
     return players
+
+def emit_score_for_room(room_id):
+    players = get_players_in_room(room_id)
+    GameSocketEvents(socketio, room_id).score(players)
 
 # === Routes ===
 
@@ -85,10 +91,7 @@ def create_room():
     if request.method == 'GET':
         return render_template('create_room.html')
     
-    room_id = request.json.get('roomName', uuid4().hex)
-    if room_id == '':
-        room_id = uuid4().hex
-    
+    room_id = request.json.get('roomName') or uuid4().hex
     redis_client.sadd('rooms', room_id)
     redis_client.expire('rooms', REDIS_EXPIRE_SECONDS)
     redis_client.delete(f'room:{room_id}:members')
@@ -146,8 +149,7 @@ def handle_join_room(room_id, username):
     redis_client.expire('rooms', REDIS_EXPIRE_SECONDS)
     
     emit('message', f'{username} has connected!', to=room_id)    
-    players = get_players_in_room(room_id)
-    _emit_score(players, room_id)
+    emit_score_for_room(room_id)
 
 @socketio.on('message')
 def handle_message(data):
@@ -179,18 +181,23 @@ def handle_start_game(data):
     online_players_in_room = get_players_in_room(room_id)
 
     # Gather bots in the room
-    bots_in_room = [BotPlayer(room_id) for _ in range(data.get('num_bots'))]
+    bots_in_room = [OnlineBotPlayer(room_id) for _ in range(data.get('num_bots'))]
 
     # Gather bots in the room
     total_players_in_room = online_players_in_room + bots_in_room
 
     max_turns = data.get('max_turns')
-    
-    # Start the game
-    game_rules = GameRules(max_turns=max_turns)
-    game = GameOnline(room_id, total_players_in_room, game_rules)
-    
-    game.run()
+
+    # Build and run engine as a background task (non-blocking)
+    def run_game():
+        engine = GameEngine(
+            rules=GameRules(max_turns),
+            players=total_players_in_room,
+            events=GameSocketEvents(socketio, room_id)
+        )
+        engine.run()
+
+    socketio.start_background_task(run_game)
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -205,8 +212,7 @@ def handle_disconnect():
     username = player_data.get('username')
 
     emit('message', f'{username} has disconnected!', to=room_id)
-    players = get_players_in_room(room_id)
-    _emit_score(players, room_id)
+    emit_score_for_room(room_id)
     
     leave_room(room_id)
     delete_player(request.sid)

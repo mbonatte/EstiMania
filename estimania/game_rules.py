@@ -10,6 +10,10 @@ class GameRules:
         n = min(52 // num_players, self.max_turns)
         return [i + 1 for i in range(n)] + list(range(n, 0, -1))
     
+    def draw_random_cards(self, n_cards: int) -> List[object]:
+        deck = Deck()
+        return deck.deal(n_cards)
+    
     def deal(self, players, n_cards: int) -> None:
         """Deal n_cards to each player and sort hands high-to-low."""
         deck = Deck()

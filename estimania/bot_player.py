@@ -36,10 +36,9 @@ class CustomMLPRegressor:
         return output
 
 class BotPlayer(Player):
-    def __init__(self, room_id=None):
-        super().__init__()
-        self.room_id = room_id
-        self.username = 'BOT - ' + uuid4().hex[:4]
+    def __init__(self, username=None):
+        username = username if username else 'BOT - ' + uuid4().hex[:4]
+        super().__init__(username)
         self.mlp_model = CustomMLPRegressor(mlp_data)
 
         self.env_data = {feature: -1 for feature in self.mlp_model.feature_names_in_}
@@ -54,6 +53,8 @@ class BotPlayer(Player):
         user_data = {}
         for i, card in enumerate(self.hand):
             user_data[f'hand_{i+1}'] = int(card)
+            # user_data[f'hand_{i+1}_value'] = int(card.value)
+            # user_data[f'hand_{i+1}_suit'] = int(card.SUITS[card.suit] // 14)
         user_data["my_bet"] = -1
 
         self.env_data = {feature: -1 for feature in self.env_data.keys()}
@@ -72,7 +73,7 @@ class BotPlayer(Player):
         best_bet = None
         best_reward = float('-inf')
 
-        predicted_rewards = self.predict_bets_reawrd(environment_data)
+        predicted_rewards = self.predict_bets_reward(environment_data)
 
         for bet, predicted_reward in predicted_rewards.items():
             if predicted_reward > best_reward:
@@ -81,7 +82,7 @@ class BotPlayer(Player):
 
         return best_bet
 
-    def predict_bets_reawrd(self, environment_data):
+    def predict_bets_reward(self, environment_data):
         possible_bets = list(range(self.get_possible_bets(environment_data)+1))
         predicted_reward = {}
         for bet in possible_bets:

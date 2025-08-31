@@ -1,18 +1,13 @@
 from threading import Event
-
-from flask_socketio import emit
-
-from uuid import uuid4
-
 from .player import Player
 from .card import Card
 
 class NetworkPlayer(Player):
-    def __init__(self, connection_id, room_id=None, username=None):
+    def __init__(self, socketio, connection_id, room_id=None, username=None):
+        self.socketio = socketio
         self.connection_id = connection_id
         self.room_id = room_id
-        self.username = username or uuid4().hex[:4]
-        super().__init__()
+        super().__init__(username)
 
     @property
     def hand(self):
@@ -25,12 +20,12 @@ class NetworkPlayer(Player):
     
     def _emit_hand_update(self):
         hand_data = [str(card) for card in self._hand]
-        emit('hand', hand_data, to=self.connection_id)
+        self.socketio.emit('hand', hand_data, to=self.connection_id)
     
     def set_bet(self, bets, timeout=None):
         response_event = Event()
         callback = lambda response: self._handle_bet_response(response, response_event)
-        emit('bet', self.username, to=self.connection_id, callback=callback)
+        self.socketio.emit('bet', self.username, to=self.connection_id, callback=callback)
         response_event.wait(timeout)
     
     def _handle_bet_response(self, bet, response_event):
@@ -41,7 +36,7 @@ class NetworkPlayer(Player):
     def select_card(self, cards_in_table, timeout=None):
         response_event = Event()
         callback = lambda response: self._handle_card_selection(response, response_event, cards_in_table)
-        emit('pick', self.username, to=self.connection_id, callback=callback)
+        self.socketio.emit('pick', self.username, to=self.connection_id, callback=callback)
 
         if response_event.wait(timeout):
             card_played = getattr(response_event, 'result', None)
@@ -66,7 +61,7 @@ class NetworkPlayer(Player):
         self.hand = self._hand
 
     def _handle_invalid_card(self):
-        emit('error', "Card not valid!", to=self.connection_id)
+        self.socketio.emit('error', "Card not valid!", to=self.connection_id)
     
     def _handle_timeout(self):
-        emit('error', "Timeout occurred while waiting for card selection", to=self.connection_id)
+        self.socketio.emit('error', "Timeout occurred while waiting for card selection", to=self.connection_id)

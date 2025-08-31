@@ -1,50 +1,64 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call, ANY
 
 from estimania.network_player import NetworkPlayer
 from estimania.card import Card
 
 class TestPlayer(unittest.TestCase):
-    
-    @patch('estimania.network_player.emit')
-    def setUp(self, mock_emit):
+
+    def setUp(self):
+        self.mock_socketio = MagicMock()
         self.connection_id = "12345"
-        self.player = NetworkPlayer(self.connection_id)
+        self.player = NetworkPlayer(
+            socketio=self.mock_socketio,
+            connection_id=self.connection_id,
+            room_id="room-1",
+            username="tester"
+        )
+
+        # Ignore emits triggered during construction
+        self.mock_socketio.emit.reset_mock()
     
-    @patch('estimania.network_player.emit')
-    def test_hand_setter_calls_emit(self, mock_emit):
+    def test_hand_setter_calls_emit(self):
         new_hand = [Card("9", "Hearts")]
         self.player.hand = new_hand
-        mock_emit.assert_called_once_with('hand', [str(card) for card in new_hand], to=self.connection_id)
+        self.mock_socketio.emit.assert_called_once_with(
+            'hand', [str(card) for card in new_hand], to=self.connection_id
+        )
     
     def test_initialization(self):
         self.assertEqual(self.player.connection_id, self.connection_id)
         self.assertIsNotNone(self.player.username)
         self.assertEqual(self.player.hand, [])
-        self.assertEqual(self.player.bet, None)
+        self.assertEqual(self.player.bet, -1)
         self.assertEqual(self.player.score, 0)
         self.assertEqual(self.player.score_in_turn, 0)
 
-    @patch('estimania.network_player.emit')
-    @patch('eventlet.event.Event')
-    def test_set_bet(self, mock_event, mock_emit):
-        mock_response_event = MagicMock()
-        mock_event.return_value = mock_response_event
-        mock_response_event.wait.return_value = None
+    def test_set_bet(self):
+        # When the player is asked to bet, immediately respond with 1
+        def side_effect(event, *args, **kwargs):
+            cb = kwargs.get('callback')
+            if callable(cb):
+                cb(1)
         
-        def emit_side_effect(*args, **kwargs):
-            callback = kwargs.get('callback')
-            if callback:
-                callback(1)
-        mock_emit.side_effect = emit_side_effect
+        self.mock_socketio.emit.side_effect = side_effect
         
-        self.player.set_bet([])
+        self.player.set_bet([], timeout=0.1)
 
-        mock_emit.assert_called_with('bet', self.player.username, to=self.connection_id, callback=unittest.mock.ANY)
+        # Assert: there was a bet emit with a callback to this connection
+        self.assertIn(
+            call('bet', self.player.username, to=self.connection_id, callback=ANY),
+            self.mock_socketio.emit.mock_calls
+        )
+
+        # self.mock_socketio.emit.assert_called_with('bet', self.player.username, to=self.connection_id, callback=unittest.mock.ANY)
+        self.assertIn(
+            call('bet', self.player.username, to=self.connection_id, callback=unittest.mock.ANY),
+            self.mock_socketio.emit.mock_calls
+        )
         self.assertEqual(self.player.bet, 1)
     
-    @patch('estimania.network_player.emit')
-    def test_select_card_valid(self, mock_emit):
+    def test_select_card_valid(self):
         cards_in_table = [Card("9", "Hearts")]
         self.player.hand = [Card("10", "Hearts"), Card("5", "Hearts"), Card("2", "Diamonds")]
 
@@ -54,16 +68,15 @@ class TestPlayer(unittest.TestCase):
                 # Simulate the frontend responding with a valid card
                 callback("10 of Hearts")
         
-        mock_emit.side_effect = emit_side_effect
+        self.mock_socketio.emit.side_effect = emit_side_effect
         
         card_played = self.player.select_card(cards_in_table)
         
         self.assertEqual(card_played, Card("10", "Hearts"))
         self.assertNotIn(Card("10", "Hearts"), self.player.hand)
-        mock_emit.assert_called_with('hand', [str(card) for card in self.player.hand], to=self.connection_id)
+        self.mock_socketio.emit.assert_called_with('hand', [str(card) for card in self.player.hand], to=self.connection_id)
     
-    @patch('estimania.network_player.emit')
-    def test_select_card_invalid(self, mock_emit):
+    def test_select_card_invalid(self):
         cards_in_table = [Card("9", "Hearts")]
         self.player.hand = [Card("10", "Hearts"), Card("2", "Hearts")]
         
@@ -72,18 +85,17 @@ class TestPlayer(unittest.TestCase):
             if callback:
                 callback("10 of Diamonds")
         
-        mock_emit.side_effect = emit_side_effect
+        self.mock_socketio.emit.side_effect = emit_side_effect
         
         card_played = self.player.select_card(cards_in_table, timeout=0.1)
         
         self.assertFalse(card_played)
         self.assertIn(Card("10", "Hearts"), self.player.hand)
         self.assertIn(Card("2", "Hearts"), self.player.hand)
-        mock_emit.assert_any_call('pick', self.player.username, to=self.connection_id, callback=unittest.mock.ANY)
-        mock_emit.assert_any_call('error', "Card not valid!", to=self.connection_id)
+        self.mock_socketio.emit.assert_any_call('pick', self.player.username, to=self.connection_id, callback=unittest.mock.ANY)
+        self.mock_socketio.emit.assert_any_call('error', "Card not valid!", to=self.connection_id)
 
-    @patch('estimania.network_player.emit')
-    def test_is_moviment_valid(self, mock_emit):
+    def test_is_moviment_valid(self):
         cards_in_table = [Card("9", "Hearts")]
         self.player.hand = [Card("10", "Hearts"), Card("2", "Diamonds")]
         
