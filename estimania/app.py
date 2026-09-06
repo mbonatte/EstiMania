@@ -208,12 +208,18 @@ def emit_score_for_room(room_id):
 
 @app.route('/')
 @app.route('/home')
-@app.route('/about')
 def index():
     """
     Route to serve the main page.
     """
     return render_template('index.html')
+
+@app.route('/about')
+def about():
+    """
+    Route to serve the About & Rules page.
+    """
+    return render_template('about.html')
     
 @app.route('/create_room', methods=['GET', 'POST'])
 def create_room():

@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="about-container" style="max-width: 1060px; margin: 1rem auto 4rem; padding: 0 0.5rem;">
+    <!-- Hero Header -->
+    <div style="text-align: center; margin-bottom: 3.5rem;">
+        <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); padding: 0.4rem 1.1rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; color: #A5B4FC; margin-bottom: 1.25rem; letter-spacing: 0.04em; text-transform: uppercase;">
+            <span>📖</span> <span data-i18n="about.badge">Official Guide & Rulebook</span>
+        </div>
+        <h1 data-i18n="about.title" style="font-size: 2.75rem; line-height: 1.15; margin-bottom: 1rem; color: #FFFFFF; font-weight: 800;">
+            About EstiMania & Game Rules
+        </h1>
+        <p data-i18n="about.subtitle" style="font-size: 1.15rem; color: var(--text-muted); max-width: 680px; margin: 0 auto 2rem; line-height: 1.6;">
+            Master the art of card estimation, trick management, and strategic betting.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/create_room" class="btn btn-emerald" style="padding: 0.75rem 1.5rem;">
+                <span>🎮</span> <span data-i18n="about.btnCreate">Host a Table</span>
+            </a>
+            <a href="/browse_rooms" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">
+                <span>🔍</span> <span data-i18n="about.btnBrowse">Browse Tables</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Section: Overview & Core Concept -->
+    <div class="glass-card" style="margin-bottom: 2.5rem; border-color: rgba(99, 102, 241, 0.25);">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <span style="font-size: 1.8rem;">🃏</span>
+            <h2 data-i18n="about.overviewTitle" style="font-size: 1.6rem; color: #FFFFFF;">The Essence of EstiMania</h2>
+        </div>
+        <p data-i18n="about.overviewP1" style="color: var(--text-main); font-size: 1.05rem; line-height: 1.75; margin-bottom: 1rem;">
+            EstiMania is a thrilling trick-taking card game of strategy, foresight, and risk management. Unlike traditional card games where having the biggest hand guarantees victory, in EstiMania your success depends entirely on how accurately you can forecast the number of tricks you will win in each round.
+        </p>
+        <p data-i18n="about.overviewP2" style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.75; margin-bottom: 0;">
+            Hit your exact estimate, and your score doubles! Miss your estimate by even a single trick, and you lose points for the discrepancy. Every card you play must be calculated to reach your target number of wins — no more, no less.
+        </p>
+    </div>
+
+    <!-- 3 Core Pillars -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem; margin-bottom: 3.5rem;">
+        <div class="glass-card" style="padding: 1.5rem; background: rgba(18, 26, 44, 0.6); border-top: 3px solid var(--accent-gold);">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">🎯</div>
+            <h3 data-i18n="about.pillar1Title" style="font-size: 1.2rem; color: #FFFFFF; margin-bottom: 0.5rem;">Precision Estimation</h3>
+            <p data-i18n="about.pillar1Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                Bid the exact number of tricks you expect to win each round. Exact bids earn 2x points; zero bids grant a bonus point.
+            </p>
+        </div>
+
+        <div class="glass-card" style="padding: 1.5rem; background: rgba(18, 26, 44, 0.6); border-top: 3px solid var(--primary);">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">👑</div>
+            <h3 data-i18n="about.pillar2Title" style="font-size: 1.2rem; color: #FFFFFF; margin-bottom: 0.5rem;">Suit Hierarchy</h3>
+            <p data-i18n="about.pillar2Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                Suits are strictly ranked: Diamonds beat Spades, Spades beat Hearts, Hearts beat Clubs. Aces are always the highest value.
+            </p>
+        </div>
+
+        <div class="glass-card" style="padding: 1.5rem; background: rgba(18, 26, 44, 0.6); border-top: 3px solid var(--accent-emerald);">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">👀</div>
+            <h3 data-i18n="about.pillar3Title" style="font-size: 1.2rem; color: #FFFFFF; margin-bottom: 0.5rem;">Indian Poker Finale</h3>
+            <p data-i18n="about.pillar3Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                In the decisive 1-card final round, you cannot see your own card! You only see your opponents' cards, forcing deductive estimation.
+            </p>
+        </div>
+    </div>
+
+    <!-- Section: Suit Hierarchy & Card Values -->
+    <div class="glass-card" style="margin-bottom: 3.5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 data-i18n="about.suitsTitle" style="font-size: 1.85rem; color: #FFFFFF; margin-bottom: 0.5rem;">Suit Hierarchy & Card Values</h2>
+            <p data-i18n="about.suitsSubtitle" style="color: var(--text-muted); font-size: 1rem; max-width: 620px; margin: 0 auto;">
+                Suit dominance determines the winner whenever cards of different suits are played.
+            </p>
+        </div>
+
+        <!-- 4 Suits Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2.25rem;">
+            <!-- Diamonds -->
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 16px; padding: 1.25rem; text-align: center; position: relative;">
+                <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: #F59E0B; color: #0B0F19; font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px;">#1</div>
+                <div style="font-size: 3rem; color: #F59E0B; line-height: 1; margin-bottom: 0.5rem;">♦</div>
+                <h4 data-i18n="about.suitDiamondsName" style="color: #F59E0B; font-size: 1.15rem; margin-bottom: 0.25rem;">♦ Diamonds (Gold)</h4>
+                <div data-i18n="about.diamondsRank" style="font-size: 0.8rem; font-weight: 700; color: #FCD34D; margin-bottom: 0.6rem; text-transform: uppercase;">Rank 1 • Supreme Suit</div>
+                <p data-i18n="about.diamondsDesc" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Diamonds trump all other suits unconditionally. A 2 of Diamonds will defeat an Ace of Spades!
+                </p>
+            </div>
+
+            <!-- Spades -->
+            <div style="background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 16px; padding: 1.25rem; text-align: center; position: relative;">
+                <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: #60A5FA; color: #0B0F19; font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px;">#2</div>
+                <div style="font-size: 3rem; color: #60A5FA; line-height: 1; margin-bottom: 0.5rem;">♠</div>
+                <h4 data-i18n="about.suitSpadesName" style="color: #60A5FA; font-size: 1.15rem; margin-bottom: 0.25rem;">♠ Spades (Sword)</h4>
+                <div data-i18n="about.spadesRank" style="font-size: 0.8rem; font-weight: 700; color: #93C5FD; margin-bottom: 0.6rem; text-transform: uppercase;">Rank 2 • High Suit</div>
+                <p data-i18n="about.spadesDesc" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Spades beat Hearts and Clubs. They are overcome only by Diamonds.
+                </p>
+            </div>
+
+            <!-- Hearts -->
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; padding: 1.25rem; text-align: center; position: relative;">
+                <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: #EF4444; color: #FFFFFF; font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px;">#3</div>
+                <div style="font-size: 3rem; color: #EF4444; line-height: 1; margin-bottom: 0.5rem;">♥</div>
+                <h4 data-i18n="about.suitHeartsName" style="color: #EF4444; font-size: 1.15rem; margin-bottom: 0.25rem;">♥ Hearts (Cups)</h4>
+                <div data-i18n="about.heartsRank" style="font-size: 0.8rem; font-weight: 700; color: #FCA5A5; margin-bottom: 0.6rem; text-transform: uppercase;">Rank 3 • Medium Suit</div>
+                <p data-i18n="about.heartsDesc" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Hearts beat Clubs. They are overcome by Diamonds and Spades.
+                </p>
+            </div>
+
+            <!-- Clubs -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 1.25rem; text-align: center; position: relative;">
+                <div style="position: absolute; top: 0.75rem; right: 0.75rem; background: #10B981; color: #0B0F19; font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px;">#4</div>
+                <div style="font-size: 3rem; color: #10B981; line-height: 1; margin-bottom: 0.5rem;">♣</div>
+                <h4 data-i18n="about.suitClubsName" style="color: #10B981; font-size: 1.15rem; margin-bottom: 0.25rem;">♣ Clubs (Clubs)</h4>
+                <div data-i18n="about.clubsRank" style="font-size: 0.8rem; font-weight: 700; color: #6EE7B7; margin-bottom: 0.6rem; text-transform: uppercase;">Rank 4 • Base Suit</div>
+                <p data-i18n="about.clubsDesc" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    The foundational suit. Overcome by any card of Diamonds, Spades, or Hearts.
+                </p>
+            </div>
+        </div>
+
+        <!-- Card Rank Strip -->
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem 1.5rem; text-align: center;">
+            <h4 data-i18n="about.cardRankTitle" style="color: #FFFFFF; font-size: 1.05rem; margin-bottom: 0.35rem;">Card Rank Within the Same Suit</h4>
+            <p data-i18n="about.cardRankSubtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.85rem;">
+                When cards of the same suit compete, the standard numerical ranking applies:
+            </p>
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.85rem;">
+                <span style="background: var(--primary-gradient); color: #fff; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.95rem; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);">A (Ace - Highest)</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.6rem; border-radius: 8px; font-weight: 600;">K</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.6rem; border-radius: 8px; font-weight: 600;">Q</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.6rem; border-radius: 8px; font-weight: 600;">J</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.6rem; border-radius: 8px; font-weight: 600;">10</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">9</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">8</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">7</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">6</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">5</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">4</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">3</span>
+                <span style="color: var(--text-muted); font-weight: 700;">&gt;</span>
+                <span style="background: rgba(255,255,255,0.06); padding: 0.35rem 0.5rem; border-radius: 8px;">2 (Lowest)</span>
+            </div>
+            <p data-i18n="about.cardRankNote" style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
+                The Ace is the undisputed highest card in its suit, outranking the King, Queen, Jack, 10, down to 2.
+            </p>
+        </div>
+    </div>
+
+    <!-- Section: Step-by-Step Rules -->
+    <div class="glass-card" style="margin-bottom: 3.5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 data-i18n="about.rulesTitle" style="font-size: 1.85rem; color: #FFFFFF; margin-bottom: 0.5rem;">How to Play: Step-by-Step</h2>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- Rule 1 -->
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; gap: 1.25rem; align-items: flex-start;">
+                <div style="background: rgba(99, 102, 241, 0.2); color: #818CF8; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 800; flex-shrink: 0;">1</div>
+                <div>
+                    <h3 data-i18n="about.rule1Title" style="color: #FFFFFF; font-size: 1.15rem; margin-bottom: 0.35rem;">1. Dealing & Bidding</h3>
+                    <p data-i18n="about.rule1Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                        Each round begins with cards dealt to every player. After inspecting your hand, each player places a bet (from 0 up to the number of cards in hand) on how many tricks they anticipate winning.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Rule 2 -->
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; gap: 1.25rem; align-items: flex-start;">
+                <div style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 800; flex-shrink: 0;">2</div>
+                <div>
+                    <h3 data-i18n="about.rule2Title" style="color: #FFFFFF; font-size: 1.15rem; margin-bottom: 0.35rem;">2. Must Follow Suit</h3>
+                    <p data-i18n="about.rule2Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                        The player leading the trick may play any card. All other players MUST play a card of the same suit as the lead card if they have one. If a player holds no cards of that suit, they may play any card from any other suit.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Rule 3 -->
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; gap: 1.25rem; align-items: flex-start;">
+                <div style="background: rgba(16, 185, 129, 0.2); color: #10B981; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 800; flex-shrink: 0;">3</div>
+                <div>
+                    <h3 data-i18n="about.rule3Title" style="color: #FFFFFF; font-size: 1.15rem; margin-bottom: 0.35rem;">3. Winning the Trick</h3>
+                    <p data-i18n="about.rule3Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                        The highest-ranking card (evaluating suit hierarchy first, then card value) wins the trick. The trick winner gathers the cards and leads the next trick.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Rule 4 -->
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem 1.5rem; display: flex; gap: 1.25rem; align-items: flex-start;">
+                <div style="background: rgba(239, 68, 68, 0.2); color: #EF4444; border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 800; flex-shrink: 0;">4</div>
+                <div>
+                    <h3 data-i18n="about.rule4Title" style="color: #FFFFFF; font-size: 1.15rem; margin-bottom: 0.35rem;">4. Match Progression (1 ➔ N ➔ 1)</h3>
+                    <p data-i18n="about.rule4Desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                        Round 1 starts with 1 card per player. Each successive round adds +1 card up to the match maximum (e.g. 5 or 10 cards), then scales back down round by round to 1 card.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Scoring Formula Cards -->
+    <div class="glass-card" style="margin-bottom: 3.5rem; border-color: rgba(16, 185, 129, 0.3);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 data-i18n="about.scoringTitle" style="font-size: 1.85rem; color: #FFFFFF; margin-bottom: 0.5rem;">Scoring System</h2>
+            <p data-i18n="about.scoringSubtitle" style="color: var(--text-muted); font-size: 1rem; max-width: 600px; margin: 0 auto;">
+                Points are calculated at the end of each round based on the accuracy of your estimate:
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem;">
+            <!-- Exact Bet -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🎯</span>
+                        <span data-i18n="about.scoreExactFormula" style="background: #10B981; color: #0B0F19; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 8px; font-size: 0.85rem;">+2 × Bet Points</span>
+                    </div>
+                    <h3 data-i18n="about.scoreExactTitle" style="color: #10B981; font-size: 1.2rem; margin-bottom: 0.5rem;">Exact Bet (Bet > 0)</h3>
+                    <p data-i18n="about.scoreExactDesc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+                        Winning exactly what you estimated awards double points! E.g., estimating 3 and winning 3 earns +6 points.
+                    </p>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(16, 185, 129, 0.2); font-family: monospace; font-size: 0.85rem; color: #A7F3D0;">
+                    Bet: 3 | Won: 3 ➔ +6 Pts
+                </div>
+            </div>
+
+            <!-- Zero Bet -->
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🛡️</span>
+                        <span data-i18n="about.scoreZeroFormula" style="background: #6366F1; color: #FFFFFF; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 8px; font-size: 0.85rem;">+1 Bonus Point</span>
+                    </div>
+                    <h3 data-i18n="about.scoreZeroTitle" style="color: #818CF8; font-size: 1.2rem; margin-bottom: 0.5rem;">Zero Bet Success (Bet = 0)</h3>
+                    <p data-i18n="about.scoreZeroDesc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+                        Successfully winning 0 tricks when bidding 0 awards 1 point, protecting you during weak hands.
+                    </p>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(99, 102, 241, 0.2); font-family: monospace; font-size: 0.85rem; color: #C7D2FE;">
+                    Bet: 0 | Won: 0 ➔ +1 Pt
+                </div>
+            </div>
+
+            <!-- Missed Estimate -->
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.5rem;">❌</span>
+                        <span data-i18n="about.scoreMissFormula" style="background: #EF4444; color: #FFFFFF; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 8px; font-size: 0.85rem;">-|Bet - Won| Points</span>
+                    </div>
+                    <h3 data-i18n="about.scoreMissTitle" style="color: #F87171; font-size: 1.2rem; margin-bottom: 0.5rem;">Missed Estimate</h3>
+                    <p data-i18n="about.scoreMissDesc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
+                        Over-bidding or under-bidding penalizes you by the absolute difference. E.g., betting 3 but winning 1 loses 2 points; betting 0 but winning 2 loses 2 points.
+                    </p>
+                </div>
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(239, 68, 68, 0.2); font-family: monospace; font-size: 0.85rem; color: #FECACA;">
+                    Bet: 3 | Won: 1 ➔ -2 Pts
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: The Final Round (Indian Poker) -->
+    <div class="glass-card" style="margin-bottom: 3.5rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px solid rgba(99, 102, 241, 0.4);">
+        <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+            <div style="font-size: 3.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 1rem; display: flex; align-items: center; justify-content: center;">
+                🎭
+            </div>
+            <div style="flex: 1; min-width: 280px;">
+                <div data-i18n="about.finalSubtitle" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+                    The ultimate climax of every EstiMania match!
+                </div>
+                <h2 data-i18n="about.finalTitle" style="font-size: 1.85rem; color: #FFFFFF; margin-bottom: 0.75rem;">
+                    The Blind Final Round (Indian Poker)
+                </h2>
+                <p data-i18n="about.finalDesc" style="color: var(--text-main); font-size: 1.05rem; line-height: 1.7; margin: 0;">
+                    In the final round, each player is dealt a single card, but you CANNOT view your own card! Instead, you hold it up facing outwards — you can see every other player's card, and they can see yours! Based on the cards you see on the table and your memory of previously played cards, you must deduce whether your unseen card is the highest and place your final bet.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Tactics & Strategies -->
+    <div class="glass-card" style="margin-bottom: 3.5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2 data-i18n="about.strategyTitle" style="font-size: 1.85rem; color: #FFFFFF; margin-bottom: 0.5rem;">Tactics & Master Strategies</h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem;">
+                <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">🧠</div>
+                <h3 data-i18n="about.strat1Title" style="color: #FFFFFF; font-size: 1.1rem; margin-bottom: 0.35rem;">Track Diamonds & Aces</h3>
+                <p data-i18n="about.strat1Desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.55; margin: 0;">
+                    Diamonds are invincible against other suits. If the Ace of Diamonds has already been played, the remaining Diamonds become the absolute masters of the board.
+                </p>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem;">
+                <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">✂️</div>
+                <h3 data-i18n="about.strat2Title" style="color: #FFFFFF; font-size: 1.1rem; margin-bottom: 0.35rem;">Control Your Wins</h3>
+                <p data-i18n="about.strat2Desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.55; margin: 0;">
+                    Winning too many tricks is just as damaging as winning too few! Once your bet is satisfied, deliberately discard low or off-suit cards to let others take the lead.
+                </p>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem;">
+                <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">🛡️</div>
+                <h3 data-i18n="about.strat3Title" style="color: #FFFFFF; font-size: 1.1rem; margin-bottom: 0.35rem;">The Power of Zero Bids</h3>
+                <p data-i18n="about.strat3Desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.55; margin: 0;">
+                    When dealt middle-tier or low cards with no Diamonds, bidding zero is often the safest path to positive points (+1 pt) while opponents battle and lose points.
+                </p>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.025); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 1.25rem;">
+                <div style="font-size: 1.75rem; margin-bottom: 0.5rem;">🎲</div>
+                <h3 data-i18n="about.strat4Title" style="color: #FFFFFF; font-size: 1.1rem; margin-bottom: 0.35rem;">Position Advantage</h3>
+                <p data-i18n="about.strat4Desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.55; margin: 0;">
+                    Being the last to bet gives you complete knowledge of the total table bids, revealing whether the round is over-bid (aggressive) or under-bid (safe).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div style="text-align: center; padding: 3rem 1.5rem; background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 70%); border: 1px solid var(--border-subtle); border-radius: 20px;">
+        <h2 data-i18n="about.ctaTitle" style="font-size: 2rem; color: #FFFFFF; margin-bottom: 0.75rem;">Ready to Test Your Skills?</h2>
+        <p data-i18n="about.ctaSubtitle" style="color: var(--text-muted); font-size: 1.05rem; max-width: 600px; margin: 0 auto 2rem;">
+            Create a room and invite friends, or test your estimation tactics against our Ultra Grandmaster AI bot.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/create_room" class="btn btn-emerald" style="padding: 0.85rem 1.75rem; font-size: 1.05rem;">
+                <span>🎮</span> <span data-i18n="about.btnCreate">Host a Table</span>
+            </a>
+            <a href="/browse_rooms" class="btn" style="padding: 0.85rem 1.75rem; font-size: 1.05rem;">
+                <span>🚪</span> <span data-i18n="about.btnBrowse">Browse Tables</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

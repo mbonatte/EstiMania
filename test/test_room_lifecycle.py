@@ -124,3 +124,10 @@ def test_pending_room_lifecycle(client):
     browse_res = client.get('/api/rooms')
     assert created_id not in browse_res.get_json()
 
+def test_about_page(client):
+    res = client.get('/about')
+    assert res.status_code == 200
+    assert b"EstiMania" in res.data
+    assert b"about.title" in res.data or b"About EstiMania" in res.data
+
+
