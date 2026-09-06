@@ -121,6 +121,25 @@ nav {
   display: flex;
 }
 
+.mobile-suit-hierarchy {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.mobile-suit-hierarchy .diamonds { color: #F59E0B; }
+.mobile-suit-hierarchy .spades { color: #60A5FA; }
+.mobile-suit-hierarchy .hearts { color: #EF4444; }
+.mobile-suit-hierarchy .clubs { color: #10B981; }
+
 @media (max-width: 768px) {
   .suit-hierarchy-badge {
     display: none;

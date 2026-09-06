@@ -162,7 +162,7 @@ export default class UIManager {
                     <span id="betCardsInHandBadge" class="room-badge" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">Cards in Hand: 0</span>
                 </div>
                 <p class="modal-desc" style="margin-bottom: 1rem; font-size: 0.88rem;">
-                    Examine your hand below and bets on the right.
+                    Examine your hand below and current bids in the scoreboard.
                 </p>
                 
                 <div class="bet-chips-container" id="betQuickChips">
