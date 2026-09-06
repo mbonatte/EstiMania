@@ -7,32 +7,41 @@ export default class UIManager {
         this.handArea = document.getElementById('handArea');
         this.roundArea = document.getElementById("roundArea");
         this.scoreArea = document.querySelector("#scoreArea tbody");
+        this.activeCardPickCallback = null;
+        this.cardClickHandler = null;
+        
         this.createBetModal();
+        this.createSetupModal();
         this.createFloatingText();
         console.log("UI Manager initialized.");
     }
 
     initialize(socketHandler) {
+        this.socketHandler = socketHandler;
         this.setupEventListeners(socketHandler);
     }
 
     setupEventListeners(socketHandler) {
-        document.getElementById('chatForm').addEventListener('submit', (event) => {
-            event.preventDefault();
-            const messageInput = document.getElementById('message');
-            socketHandler.sendMessage(messageInput.value);
-            messageInput.value = '';
-        });
+        const chatForm = document.getElementById('chatForm');
+        if (chatForm) {
+            chatForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const messageInput = document.getElementById('message');
+                if (messageInput.value.trim()) {
+                    socketHandler.sendMessage(messageInput.value.trim());
+                    messageInput.value = '';
+                }
+            });
+        }
 
-        document.getElementById('startGameButton').addEventListener('click', () => {
-            const maxTurns = parseInt(prompt("Enter the maximum number of turns:", "0"));
-            const numBots = parseInt(prompt("Enter the number of bots:", "0"));
-            if (!isNaN(maxTurns) && !isNaN(numBots)) {
-                socketHandler.startGame(maxTurns, numBots);
-            } else {
-                alert("Please enter valid integer values.");
-            }
-        });
+        const startBtn = document.getElementById('startGameButton');
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                this.showSetupModal((maxTurns, numBots) => {
+                    socketHandler.startGame(maxTurns, numBots);
+                });
+            });
+        }
     }
 
     appendMessage(msg) {
@@ -44,9 +53,104 @@ export default class UIManager {
     }
 
     removeStartGameButton() {
-        document.getElementById('startGameButton').remove();
+        const startBtn = document.getElementById('startGameButton');
+        if (startBtn) {
+            startBtn.style.display = 'none';
+        }
     }
 
+    /* ========================================================================
+       Game Setup Modal
+       ======================================================================== */
+    createSetupModal() {
+        const setupModal = document.createElement('div');
+        setupModal.id = 'setupModal';
+        setupModal.className = 'modal';
+        setupModal.innerHTML = `
+            <div class="modal-content">
+                <h2>Game Settings</h2>
+                <p class="modal-desc">Configure opponents and round length before dealing.</p>
+                
+                <div class="modal-form-row">
+                    <label>AI Bot Opponents</label>
+                    <div class="bet-chips-container" id="botsChipsContainer">
+                        <div class="bet-chip" data-value="0">0</div>
+                        <div class="bet-chip" data-value="1">1</div>
+                        <div class="bet-chip" data-value="2">2</div>
+                        <div class="bet-chip active" data-value="3">3</div>
+                    </div>
+                </div>
+
+                <div class="modal-form-row">
+                    <label>Max Turns / Rounds</label>
+                    <div class="bet-chips-container" id="turnsChipsContainer">
+                        <div class="bet-chip" data-value="1">1</div>
+                        <div class="bet-chip" data-value="2">2</div>
+                        <div class="bet-chip" data-value="3">3</div>
+                        <div class="bet-chip" data-value="4">4</div>
+                        <div class="bet-chip active" data-value="5">5</div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelSetupBtn">Cancel</button>
+                    <button type="button" class="btn btn-emerald" id="confirmSetupBtn">Start Match</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(setupModal);
+
+        // Chip selection logic for setup modal
+        this.setupChipGroup('botsChipsContainer');
+        this.setupChipGroup('turnsChipsContainer');
+    }
+
+    setupChipGroup(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.addEventListener('click', (e) => {
+            const chip = e.target.closest('.bet-chip');
+            if (!chip) return;
+            container.querySelectorAll('.bet-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+        });
+    }
+
+    showSetupModal(onStartCallback) {
+        const setupModal = document.getElementById('setupModal');
+        const confirmBtn = document.getElementById('confirmSetupBtn');
+        const cancelBtn = document.getElementById('cancelSetupBtn');
+
+        setupModal.style.display = 'flex';
+
+        const onConfirm = () => {
+            const activeBotsChip = document.querySelector('#botsChipsContainer .bet-chip.active');
+            const activeTurnsChip = document.querySelector('#turnsChipsContainer .bet-chip.active');
+            const numBots = activeBotsChip ? parseInt(activeBotsChip.dataset.value) : 3;
+            const maxTurns = activeTurnsChip ? parseInt(activeTurnsChip.dataset.value) : 5;
+
+            setupModal.style.display = 'none';
+            cleanup();
+            if (onStartCallback) onStartCallback(maxTurns, numBots);
+        };
+
+        const onCancel = () => {
+            setupModal.style.display = 'none';
+            cleanup();
+        };
+
+        const cleanup = () => {
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+        };
+
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+    }
+
+    /* ========================================================================
+       Betting Modal
+       ======================================================================== */
     createBetModal() {
         const betModal = document.createElement('div');
         betModal.id = 'betModal';
@@ -54,11 +158,47 @@ export default class UIManager {
         betModal.innerHTML = `
             <div class="modal-content">
                 <h2>Place Your Bet</h2>
-                <input type="number" min="0" id="betInput" placeholder="Enter your bet">
-                <button id="submitBetButton">Submit</button>
+                <p class="modal-desc">Predict exactly how many tricks you will win this round.</p>
+                
+                <div class="bet-chips-container" id="betQuickChips">
+                    <div class="bet-chip active" data-bet="0">0</div>
+                    <div class="bet-chip" data-bet="1">1</div>
+                    <div class="bet-chip" data-bet="2">2</div>
+                    <div class="bet-chip" data-bet="3">3</div>
+                    <div class="bet-chip" data-bet="4">4</div>
+                    <div class="bet-chip" data-bet="5">5</div>
+                </div>
+
+                <div class="modal-form-row">
+                    <label for="betInput">Or enter custom amount</label>
+                    <input type="number" min="0" max="13" id="betInput" value="0">
+                </div>
+
+                <div class="modal-actions">
+                    <button id="submitBetButton" class="btn btn-emerald" style="width: 100%;">Confirm Bid</button>
+                </div>
             </div>
         `;
         document.body.appendChild(betModal);
+
+        const chips = betModal.querySelectorAll('.bet-chip');
+        const betInput = betModal.querySelector('#betInput');
+
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                betInput.value = chip.dataset.bet;
+            });
+        });
+
+        betInput.addEventListener('input', () => {
+            const val = betInput.value;
+            chips.forEach(c => {
+                if (c.dataset.bet === val) c.classList.add('active');
+                else c.classList.remove('active');
+            });
+        });
     }
     
     showBetInputForm(callback) {
@@ -66,11 +206,33 @@ export default class UIManager {
         const betInput = document.getElementById('betInput');
         const submitBetButton = document.getElementById('submitBetButton');
 
-        betModal.style.display = 'block';
+        // Dynamically adjust quick chips based on cards in hand
+        const handCount = this.handArea ? this.handArea.querySelectorAll('.card-wrapper').length : 5;
+        const chipsContainer = document.getElementById('betQuickChips');
+        if (chipsContainer) {
+            chipsContainer.innerHTML = '';
+            const maxChip = Math.max(handCount, 3);
+            for (let i = 0; i <= maxChip; i++) {
+                const chip = document.createElement('div');
+                chip.className = `bet-chip ${i === 0 ? 'active' : ''}`;
+                chip.dataset.bet = i;
+                chip.textContent = i;
+                chip.addEventListener('click', () => {
+                    chipsContainer.querySelectorAll('.bet-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    betInput.value = i;
+                });
+                chipsContainer.appendChild(chip);
+            }
+        }
+        betInput.value = 0;
+
+        betModal.style.display = 'flex';
 
         const submitBet = () => {
-            const bet = parseInt(betInput.value);
+            const bet = parseInt(betInput.value) || 0;
             betModal.style.display = 'none';
+            submitBetButton.removeEventListener('click', submitBet);
             console.log(`Bet submitted: ${bet}`);
             callback(bet);
         };
@@ -78,121 +240,79 @@ export default class UIManager {
         submitBetButton.addEventListener('click', submitBet);
     }
 
+    /* ========================================================================
+       Card Playing Phase
+       ======================================================================== */
     handleCardPick(callback) {
-        this.bringAttention();
-        const cardElements = document.getElementsByClassName('card');
+        this.bringAttention("Your Turn! Pick a card to play");
+        this.activeCardPickCallback = callback;
+
+        const handCards = this.handArea.querySelectorAll('.card');
         
-        const cardClickHandler = (event) => {
-            const clickedCard = event.target.textContent;
+        this.cardClickHandler = (event) => {
+            const cardElement = event.currentTarget;
+            const clickedCard = cardElement.dataset.card || cardElement.id;
             this.disableCardSelection();
             this.removeFloatingText();
             console.log(`Card selected: ${clickedCard}`);
-            callback(clickedCard);
+            if (this.activeCardPickCallback) {
+                const cb = this.activeCardPickCallback;
+                this.activeCardPickCallback = null;
+                cb(clickedCard);
+            }
         };
 
-        for (let card of cardElements) {
-            card.addEventListener('click', cardClickHandler);
-        }
+        handCards.forEach(card => {
+            card.classList.add('playable');
+            card.addEventListener('click', this.cardClickHandler);
+        });
     }
 
+    disableCardSelection() {
+        if (this.handArea) {
+            const handCards = this.handArea.querySelectorAll('.card');
+            handCards.forEach(card => {
+                card.classList.remove('playable');
+                if (this.cardClickHandler) {
+                    card.removeEventListener('click', this.cardClickHandler);
+                }
+            });
+        }
+        this.cardClickHandler = null;
+    }
+
+    /* ========================================================================
+       Table & Hand Updates
+       ======================================================================== */
     updateTable(data) {
         this.tableArea.innerHTML = '';
+        if (!data.table || data.table.length === 0) {
+            const emptyHint = document.createElement('div');
+            emptyHint.className = 'table-empty-hint';
+            emptyHint.innerHTML = '<span>Played cards will appear here</span>';
+            this.tableArea.appendChild(emptyHint);
+            return;
+        }
+
         data.table.forEach((card, index) => {
-            const cardWrapper = this.createCardWrapper(card, data.names[index]);
+            const playerName = data.names ? data.names[index] : null;
+            const cardWrapper = this.createCardWrapper(card, playerName);
             this.tableArea.appendChild(cardWrapper);
         });
-        console.log(`Cards in Table: ${data.table}`);
+        console.log(`Cards on Table:`, data.table);
     }
 
     updateHand(userCards) {
         this.handArea.innerHTML = '';
+        if (!userCards || userCards.length === 0) {
+            console.log("Hand is currently empty.");
+            return;
+        }
         userCards.forEach(card => {
             const cardWrapper = this.createCardWrapper(card);
             this.handArea.appendChild(cardWrapper);
         });
         console.log("Updating hand area with user cards: ", userCards);
-    }
-
-    updateScore(users) {
-        this.scoreArea.innerHTML = "";
-        users.forEach(player => {
-            const row = this.createScoreRow(player);
-            this.scoreArea.appendChild(row);
-        });
-    }
-    
-    updateRound(round) {
-        this.roundArea.innerHTML = round;
-    }
-
-
-    highlightPlayerTurn(player) {
-        const rows = this.scoreArea.querySelectorAll("tr");
-        rows.forEach(row => row.style.backgroundColor = "");
-        const playerRow = this.scoreArea.querySelector(`tr[data-player='${player}']`);
-        if (playerRow) playerRow.style.backgroundColor = "red";
-        console.log(`It's ${player}' turn`);
-    }
-
-    highlightWinnerCard(card) {
-        const winnerCard = document.getElementById(card);
-        if (winnerCard) {
-            winnerCard.style.border = '5px red solid';
-            winnerCard.style.animation = 'highlight 1s infinite';
-        }
-    }
-
-    showFinalScore(scores) {
-        const scorePopup = document.createElement("div");
-        scorePopup.id = "scorePopup";
-        scorePopup.classList.add("final-score-popup", "show");
-
-        // Create close button
-        const closeButton = document.createElement("button");
-        closeButton.textContent = "X";
-        closeButton.classList.add("close-button", "red-button");
-        closeButton.setAttribute("aria-label", "Close");
-        closeButton.addEventListener("click", () => {
-            scorePopup.remove();
-        });
-
-        // Create header div to hold the title and close button
-        const headerDiv = document.createElement("div");
-        headerDiv.classList.add("popup-header");
-
-        const title = document.createElement("h2");
-        title.textContent = "Final Scores";
-
-        headerDiv.appendChild(title);
-        headerDiv.appendChild(closeButton);
-        
-        // Create content div
-        const contentDiv = document.createElement("div");
-        contentDiv.classList.add("popup-content");
-        
-        // Create table
-        const scoreTable = document.createElement("table");
-        scoreTable.classList.add("final-score-table");
-        
-        const headerRow = this.createScoreRow({ name: "Name", score: "Score" }, true);
-        scoreTable.appendChild(headerRow);
-        
-        scores.forEach(score => {
-            const row = this.createScoreRow(score);
-            scoreTable.appendChild(row);
-        });
-        
-        contentDiv.appendChild(scoreTable);
-        
-        // Create header-content div
-        const headerContentDiv = document.createElement("div");
-        headerContentDiv.classList.add("popup-header-content");
-        
-        headerContentDiv.appendChild(headerDiv);
-        headerContentDiv.appendChild(contentDiv);
-
-        scorePopup.appendChild(headerContentDiv);
-        document.body.appendChild(scorePopup);
     }
 
     createCardWrapper(card, playerName = null) {
@@ -201,8 +321,9 @@ export default class UIManager {
         
         const cardElement = document.createElement('div');
         cardElement.id = card;
+        cardElement.dataset.card = card;
         cardElement.className = 'card';
-        cardElement.textContent = card;
+        // Note: Do not set cardElement.textContent = card to preserve clean card sprite face
         
         cardWrapper.appendChild(cardElement);
         
@@ -213,9 +334,137 @@ export default class UIManager {
             cardWrapper.appendChild(playerNameElement);
         }
         
-        new Card(card).displayCard(cardElement, true);
+        new Card(card).displayCard(cardElement);
         
         return cardWrapper;
+    }
+
+    /* ========================================================================
+       Scoreboard & Round Info
+       ======================================================================== */
+    updateScore(users) {
+        this.scoreArea.innerHTML = "";
+        users.forEach(player => {
+            const row = this.createScoreRow(player);
+            this.scoreArea.appendChild(row);
+        });
+    }
+    
+    updateRound(round) {
+        this.roundArea.innerHTML = `<span>🃏</span> ${round}`;
+    }
+
+    highlightPlayerTurn(player) {
+        const rows = this.scoreArea.querySelectorAll("tr");
+        rows.forEach(row => row.classList.remove('active-turn'));
+        
+        const playerRow = this.scoreArea.querySelector(`tr[data-player='${player}']`);
+        if (playerRow) {
+            playerRow.classList.add('active-turn');
+        }
+        console.log(`It's ${player}'s turn`);
+    }
+
+    highlightWinnerCard(card) {
+        const winnerCard = document.getElementById(card);
+        if (winnerCard) {
+            winnerCard.classList.add('winner-card-highlight');
+        }
+    }
+
+    /* ========================================================================
+       Final Score Leaderboard
+       ======================================================================== */
+    showFinalScore(scores) {
+        const existingPopup = document.getElementById('scorePopup');
+        if (existingPopup) existingPopup.remove();
+
+        // Sort descending by score
+        const sortedScores = [...scores].sort((a, b) => {
+            const sA = (a.score !== undefined) ? a.score : (a.wins || 0);
+            const sB = (b.score !== undefined) ? b.score : (b.wins || 0);
+            return sB - sA;
+        });
+
+        const scorePopup = document.createElement("div");
+        scorePopup.id = "scorePopup";
+        scorePopup.classList.add("final-score-popup", "show");
+
+        const headerContentDiv = document.createElement("div");
+        headerContentDiv.classList.add("popup-header-content");
+
+        // Header
+        const headerDiv = document.createElement("div");
+        headerDiv.classList.add("popup-header");
+
+        const title = document.createElement("h2");
+        title.innerHTML = `🏆 Final Standings`;
+
+        const closeButton = document.createElement("button");
+        closeButton.innerHTML = "&times;";
+        closeButton.classList.add("close-button");
+        closeButton.setAttribute("aria-label", "Close");
+        closeButton.addEventListener("click", () => {
+            scorePopup.remove();
+        });
+
+        headerDiv.appendChild(title);
+        headerDiv.appendChild(closeButton);
+
+        // Content Table
+        const contentDiv = document.createElement("div");
+        contentDiv.classList.add("popup-content");
+        
+        const scoreTable = document.createElement("table");
+        scoreTable.classList.add("final-score-table");
+        
+        const headerRow = document.createElement("tr");
+        headerRow.innerHTML = `
+            <th>Rank & Player</th>
+            <th style="text-align: right;">Final Score</th>
+        `;
+        scoreTable.appendChild(headerRow);
+        
+        const rankEmojis = ["🥇", "🥈", "🥉"];
+        sortedScores.forEach((player, idx) => {
+            const row = document.createElement("tr");
+            if (idx === 0) row.classList.add("winner-row");
+            
+            const badge = rankEmojis[idx] || `#${idx + 1}`;
+            const nameCell = document.createElement("td");
+            nameCell.innerHTML = `<span style="margin-right: 0.5rem;">${badge}</span> ${player.name}`;
+            
+            const val = (player.score !== undefined) ? player.score : (player.wins || 0);
+            const scoreCell = document.createElement("td");
+            scoreCell.textContent = `${val} pts`;
+            
+            row.appendChild(nameCell);
+            row.appendChild(scoreCell);
+            scoreTable.appendChild(row);
+        });
+        
+        contentDiv.appendChild(scoreTable);
+
+        // Action Buttons
+        const actionDiv = document.createElement("div");
+        actionDiv.style.marginTop = "1.5rem";
+        actionDiv.style.display = "flex";
+        actionDiv.style.justifyContent = "center";
+        
+        const restartBtn = document.createElement("button");
+        restartBtn.className = "btn btn-emerald";
+        restartBtn.textContent = "Play Again";
+        restartBtn.addEventListener("click", () => {
+            scorePopup.remove();
+            window.location.reload();
+        });
+        actionDiv.appendChild(restartBtn);
+
+        headerContentDiv.appendChild(headerDiv);
+        headerContentDiv.appendChild(contentDiv);
+        headerContentDiv.appendChild(actionDiv);
+        scorePopup.appendChild(headerContentDiv);
+        document.body.appendChild(scorePopup);
     }
 
     createScoreRow(player, isHeader = false) {
@@ -226,40 +475,40 @@ export default class UIManager {
         nameCell.textContent = player.name;
         row.appendChild(nameCell);
         
-        const scoreCell = document.createElement(isHeader ? "th" : "td");
-        scoreCell.textContent = player.score || player.bet;
-        row.appendChild(scoreCell);
+        const betCell = document.createElement(isHeader ? "th" : "td");
+        betCell.textContent = (player.bet !== undefined && player.bet !== null) ? player.bet : '-';
+        row.appendChild(betCell);
         
-        if (player.wins !== undefined) {
-            const winsCell = document.createElement("td");
-            winsCell.textContent = player.wins;
-            row.appendChild(winsCell);
-        }
+        const winsCell = document.createElement(isHeader ? "th" : "td");
+        winsCell.textContent = (player.wins !== undefined) ? player.wins : ((player.score !== undefined) ? player.score : '-');
+        row.appendChild(winsCell);
         
         return row;
     }
 
-    disableCardSelection() {
-        const cardElements = document.getElementsByClassName('card');
-        for (let card of cardElements) {
-            card.removeEventListener('click', () => {});
+    /* ========================================================================
+       Toast Notifications
+       ======================================================================== */
+    createFloatingText() {
+        let floatingText = document.getElementById('floatingText');
+        if (!floatingText) {
+            floatingText = document.createElement('div');
+            floatingText.id = 'floatingText';
+            floatingText.textContent = 'Pick a card!';
+            floatingText.style.display = 'none';
+            document.body.appendChild(floatingText);
         }
     }
-
-    createFloatingText() {
-        const floatingText = document.createElement('div');
-        floatingText.id = 'floatingText';
-        floatingText.textContent = 'Pick a card!';
-        floatingText.style.display = 'none';
-        document.body.appendChild(floatingText);
-    }
     
-    bringAttention() {
+    bringAttention(msg = 'Pick a card!') {
         const floatingText = document.getElementById('floatingText');
-        floatingText.style.display = 'block';
-        floatingText.style.animation = 'none';
-        void floatingText.offsetWidth;
-        floatingText.style.animation = 'floatAnimation 6s forwards';
+        if (floatingText) {
+            floatingText.textContent = msg;
+            floatingText.style.display = 'block';
+            floatingText.style.animation = 'none';
+            void floatingText.offsetWidth;
+            floatingText.style.animation = 'toastSlide 4.5s forwards';
+        }
     }
 
     removeFloatingText() {

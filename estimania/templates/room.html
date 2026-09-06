@@ -1,48 +1,61 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
-	<link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_room.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_room.css') }}" />
 
-	<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
-    <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>    
-</head>
-<body>
-	<div id="container">
-		<div id="tableArea" ></div>
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+<script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
 
-		<div id="handArea"></div>
-		
-		<button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
-		<div id="scoreAreaWrapper" class="toggle-wrapper">
-            <div id="roundArea">Round</div>
-			<table id="scoreArea" class="score-table">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Bet</th>
-						<th>Wins</th>
-					</tr>
-				</thead>
-				<tbody></tbody>
-			</table>
-		</div>
-		
-		<button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Messages</button>
-		<div id="messageWrapper" class="toggle-wrapper">
-			<div id="messageArea"></div>
-			<form id="chatForm">
-				<input type="text" id="message" placeholder="Enter your message">
-				<input type="submit" value="Send">
-			</form>
-		</div>
-	</div>
-    
-    <div>
-        <button id="startGameButton">Start Game</button>
+<div class="room-topbar">
+    <div class="room-topbar-info">
+        <div class="room-badge">
+            <span class="dot"></span>
+            <span>Room: {{ room_id if room_id else 'Live Table' }}</span>
+        </div>
     </div>
-</body>
+    <div class="room-topbar-actions">
+        <button id="startGameButton" class="btn btn-emerald">
+            <span>♠</span> Start Match
+        </button>
+    </div>
+</div>
+
+<div id="container">
+    <div id="tableArea">
+        <div class="table-empty-hint">
+            <span>Played cards will appear here</span>
+        </div>
+    </div>
+
+    <div id="handArea"></div>
+    
+    <button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
+    <div id="scoreAreaWrapper" class="toggle-wrapper">
+        <div id="roundArea"><span>🃏</span> Waiting to deal...</div>
+        <table id="scoreArea" class="score-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Bid</th>
+                    <th>Tricks</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    
+    <button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Chat</button>
+    <div id="messageWrapper" class="toggle-wrapper">
+        <div class="chat-header">Table Chat</div>
+        <div id="messageArea"></div>
+        <form id="chatForm">
+            <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" class="btn btn-secondary">Send</button>
+        </form>
+    </div>
+</div>
+
 <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
 
 <script>
@@ -51,7 +64,7 @@
         var button = document.getElementById(buttonId);
         var contentName = button.getAttribute("data-content");
         if (wrapper.style.display === "none" || wrapper.style.display === "") {
-            wrapper.style.display = "block";
+            wrapper.style.display = "flex";
             button.textContent = "Hide " + contentName;
         } else {
             wrapper.style.display = "none";
@@ -60,16 +73,23 @@
     }
 
     function resetVisibilityOnResize() {
-        if (window.innerWidth >= 769) {
-            document.getElementById('scoreAreaWrapper').style.display = 'block';
-            document.getElementById('messageWrapper').style.display = 'block';
-            document.getElementById('scoreToggleButton').style.display = 'none';
-            document.getElementById('messageToggleButton').style.display = 'none';
+        var scoreWrap = document.getElementById('scoreAreaWrapper');
+        var msgWrap = document.getElementById('messageWrapper');
+        var scoreBtn = document.getElementById('scoreToggleButton');
+        var msgBtn = document.getElementById('messageToggleButton');
+
+        if (window.innerWidth >= 901) {
+            scoreWrap.style.display = 'flex';
+            msgWrap.style.display = 'flex';
+            scoreBtn.style.display = 'none';
+            msgBtn.style.display = 'none';
         } else {
-            document.getElementById('scoreToggleButton').style.display = 'block';
-            document.getElementById('messageToggleButton').style.display = 'block';
-            toggleVisibility('scoreAreaWrapper', 'scoreToggleButton');
-            toggleVisibility('messageWrapper', 'messageToggleButton');
+            scoreBtn.style.display = 'flex';
+            msgBtn.style.display = 'flex';
+            scoreWrap.style.display = 'none';
+            msgWrap.style.display = 'none';
+            scoreBtn.textContent = "Show Scores";
+            msgBtn.textContent = "Show Chat";
         }
     }
 
@@ -83,7 +103,4 @@
     window.addEventListener('resize', resetVisibilityOnResize);
     window.addEventListener('load', resetVisibilityOnResize);
 </script>
-
 {% endblock %}
-
-

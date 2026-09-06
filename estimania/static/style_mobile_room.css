@@ -1,35 +1,34 @@
+/* ==========================================================================
+   EstiMania - Mobile Responsive Game Room Styles
+   ========================================================================== */
+
 .toggle-button {
-  display: none; /* Hide by default for non-mobile */
-  background-color: rgb(76, 11, 174);
-  color: white;
-  font-size: 1rem;
+  display: none; /* Hide by default on desktop */
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-main);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
   text-decoration: none;
-  padding: 0.3rem 0.8rem;
-  border: none;
-  border-radius: 10px;
-  margin: 0.1rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  margin: 0.5rem 0;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.2s ease;
+  width: 100%;
 }
 
 .toggle-button:hover {
-  background-color: rgb(63, 9, 145);
+  background: var(--bg-card-hover);
+  border-color: var(--primary);
 }
 
-.toggle-wrapper {
-  display: none; /* Hidden by default */
-}
-
-@media (max-width: 768px) {
-  .toggle-wrapper {
-    display: none;
-  }
-  
-  .toggle-button {
-    display: block;
-  }
-
+@media (max-width: 900px) {
   #container {
+    grid-template-columns: 1fr;
     grid-template-areas:
       "tableArea"
       "handArea"
@@ -37,39 +36,70 @@
       "scoreArea"
       "messageButton"
       "messageArea";
+    gap: 1rem;
   }
-  
+
+  .toggle-wrapper {
+    display: none;
+  }
+
+  .toggle-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   #scoreToggleButton {
     grid-area: scoreButton;
   }
-  
+
   #messageToggleButton {
     grid-area: messageButton;
   }
 
-  .form-group {
-    width: 100%;
+  #tableArea {
+    min-height: 260px;
+    padding: 1.5rem 1rem;
+    border-radius: 36px;
   }
 
-  .card-wrapper {
-    transform: scale(0.5);
-    width: calc(150px * 0.5);
-    height: calc(214px * 0.5);
+  #tableArea .card-wrapper {
+    transform: scale(0.65);
+    margin: -15px -10px;
+  }
+
+  #handArea {
+    min-height: 180px;
+    padding: 1rem 0.5rem;
+    gap: 0.25rem;
+  }
+
+  #handArea .card-wrapper {
+    transform: scale(0.65);
+    margin: -15px -12px;
+  }
+
+  #handArea .card-wrapper:hover {
+    transform: scale(0.72) translateY(-8px);
+  }
+
+  .room-topbar {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .room-topbar-info {
+    justify-content: space-between;
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 901px) {
   .toggle-button {
-    display: none;
-  }
-  
-  .toggle-wrapper {
-    display: block;
+    display: none !important;
   }
 
-  .card-wrapper {
-    transform: scale(0.7);
-    width: calc(150px * 0.7);
-    height: calc(214px * 0.7);
+  .toggle-wrapper {
+    display: flex !important;
   }
 }

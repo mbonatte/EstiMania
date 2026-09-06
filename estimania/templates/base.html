@@ -6,47 +6,60 @@
 		<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 		<link rel="stylesheet" href="{{ url_for('static', filename='style_menu.css') }}" />
 		<link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_general.css') }}" />
 		
-		<title>EstiMania - Card game</title>
+		<title>EstiMania - Card Game</title>
 	</head>
 <body>
 	<nav>
 		<div class="nav-container">
 			<a href="/home" class="logo">
-				<img src="{{ url_for('static', filename='logo_menu.png') }}" alt="logo" />
+				<img src="{{ url_for('static', filename='logo_menu.png') }}" alt="EstiMania Logo" />
 			</a>
-			<button class="menu-toggle" onclick="toggleMobileMenu(this)">
+
+			<div class="suit-hierarchy-badge" title="Suit Hierarchy: Diamonds/Gold beats Spades, Hearts, and Clubs!">
+				<span>Hierarchy:</span>
+				<span class="diamonds">♦ Gold</span> &gt;
+				<span class="spades">♠ Sword</span> &gt;
+				<span class="hearts">♥ Cups</span> &gt;
+				<span class="clubs">♣ Clubs</span>
+			</div>
+
+			<button class="menu-toggle" aria-label="Toggle navigation" onclick="toggleMobileMenu()">
 				<span></span>
 				<span></span>
 				<span></span>
 			</button>
+
 			<ul id="menu" class="menu">
-				<li><a href="/create_room">Create room</a></li>
-				<!-- <li><a href="/join_room">Join room</a></li> -->
+				<li><a href="/create_room">Create Room</a></li>
 				<li><a href="/browse_rooms">Browse Rooms</a></li>
-				<li><a href="/about">About</a></li>
+				<li><a href="/about">About & Rules</a></li>
 			</ul>
 		</div>
 	</nav>
 	
 	<div id="mobile-menu" class="mobile-menu">
-		<a href="/create_room">Create a room</a>
-		<!-- <a href="/join_room">Join a room</a> -->
+		<a href="/create_room">Create Room</a>
 		<a href="/browse_rooms">Browse Rooms</a>
-		<a href="/about">About</a>
+		<a href="/about">About & Rules</a>
 	</div>
 
 	<main class="content">
 		{% block content %} {% endblock %}
 	</main>
+
+	<script>
+		function toggleMobileMenu() {
+			var mobile_menu = document.getElementById("mobile-menu");
+			mobile_menu.classList.toggle("show");
+		}
+	</script>
 </body>
-<script>
-	function toggleMobileMenu() {
-		var mobile_menu = document.getElementById("mobile-menu");
-		mobile_menu.classList.toggle("show");
-    }
- </script>
 </html>

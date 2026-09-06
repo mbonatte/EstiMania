@@ -1,60 +1,120 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_room.css') }}" />
-    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
-    <script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
-<body data-scenario="{{ scenario }}">
-    <div id="test-controls">
-        <h3>Test Scenarios</h3>
-        <select id="scenarioSelect">
-            <option value="initial">Initial Game State</option>
-            <option value="mid_game">Mid-Game State</option>
-            <option value="betting">Betting Phase</option>
-            <option value="picking">Card Picking Phase</option>
-            <option value="winner">Round Winner State</option>
-            <option value="end_game">End Game State</option>
-        </select>
-        <button id="loadScenario">Load Scenario</button>
+<link rel="stylesheet" href="{{ url_for('static', filename='style_room.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style_mobile_room.css') }}" />
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+<script src="//code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<div class="room-topbar" style="border-left: 4px solid var(--accent-gold);">
+    <div class="room-topbar-info" style="gap: 1.25rem;">
+        <div class="room-badge" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.35); color: #FCD34D;">
+            <span class="dot" style="background: var(--accent-gold); box-shadow: 0 0 8px var(--accent-gold);"></span>
+            <span>Scenario Lab</span>
+        </div>
+        <div id="test-controls" style="display: flex; align-items: center; gap: 0.75rem;">
+            <select id="scenarioSelect" style="background: rgba(11, 15, 25, 0.8); border: 1px solid var(--border-subtle); color: #fff; padding: 0.5rem 0.9rem; border-radius: 10px; font-size: 0.9rem; outline: none;">
+                <option value="initial" {% if scenario == 'initial' %}selected{% endif %}>Initial Game State</option>
+                <option value="mid_game" {% if scenario == 'mid_game' %}selected{% endif %}>Mid-Game State</option>
+                <option value="betting" {% if scenario == 'betting' %}selected{% endif %}>Betting Phase</option>
+                <option value="picking" {% if scenario == 'picking' %}selected{% endif %}>Card Picking Phase</option>
+                <option value="winner" {% if scenario == 'winner' %}selected{% endif %}>Round Winner State</option>
+                <option value="end_game" {% if scenario == 'end_game' %}selected{% endif %}>End Game State</option>
+            </select>
+            <button id="loadScenario" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Load Scenario</button>
+        </div>
+    </div>
+    <div class="room-topbar-actions">
+        <button id="startGameButton" class="btn btn-emerald" style="padding: 0.5rem 1.2rem;">
+            <span>♠</span> Start Match
+        </button>
+    </div>
+</div>
+
+<div id="container">
+    <div id="tableArea">
+        <div class="table-empty-hint">
+            <span>Played cards will appear here</span>
+        </div>
     </div>
 
-    <div id="container">
-        <div id="tableArea"></div>
-        <div id="handArea"></div>
-        
-        <button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
-        <div id="scoreAreaWrapper" class="toggle-wrapper">
-            <div id="roundArea">Round</div>
-            <table id="scoreArea" class="score-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Bet</th>
-                        <th>Wins</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        
-        <button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Messages</button>
-        <div id="messageWrapper" class="toggle-wrapper">
-            <div id="messageArea"></div>
-            <form id="chatForm">
-                <input type="text" id="message" placeholder="Enter your message">
-                <input type="submit" value="Send">
-            </form>
-        </div>
+    <div id="handArea"></div>
+    
+    <button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
+    <div id="scoreAreaWrapper" class="toggle-wrapper">
+        <div id="roundArea"><span>🃏</span> Round</div>
+        <table id="scoreArea" class="score-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Bid</th>
+                    <th>Tricks</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
-    <div>
-        <button id="startGameButton">Start Game</button>
+    
+    <button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Chat</button>
+    <div id="messageWrapper" class="toggle-wrapper">
+        <div class="chat-header">Scenario Log</div>
+        <div id="messageArea"></div>
+        <form id="chatForm">
+            <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" class="btn btn-secondary">Send</button>
+        </form>
     </div>
-</body>
+</div>
+
+<script>
+    document.body.setAttribute('data-scenario', '{{ scenario }}');
+</script>
 <script type="module" src="{{ url_for('static', filename='test_main.js') }}"></script>
 
 <script>
-    // Your existing toggle visibility scripts...
+    function toggleVisibility(wrapperId, buttonId) {
+        var wrapper = document.getElementById(wrapperId);
+        var button = document.getElementById(buttonId);
+        var contentName = button.getAttribute("data-content");
+        if (wrapper.style.display === "none" || wrapper.style.display === "") {
+            wrapper.style.display = "flex";
+            button.textContent = "Hide " + contentName;
+        } else {
+            wrapper.style.display = "none";
+            button.textContent = "Show " + contentName;
+        }
+    }
+
+    function resetVisibilityOnResize() {
+        var scoreWrap = document.getElementById('scoreAreaWrapper');
+        var msgWrap = document.getElementById('messageWrapper');
+        var scoreBtn = document.getElementById('scoreToggleButton');
+        var msgBtn = document.getElementById('messageToggleButton');
+
+        if (window.innerWidth >= 901) {
+            scoreWrap.style.display = 'flex';
+            msgWrap.style.display = 'flex';
+            scoreBtn.style.display = 'none';
+            msgBtn.style.display = 'none';
+        } else {
+            scoreBtn.style.display = 'flex';
+            msgBtn.style.display = 'flex';
+            scoreWrap.style.display = 'none';
+            msgWrap.style.display = 'none';
+            scoreBtn.textContent = "Show Scores";
+            msgBtn.textContent = "Show Chat";
+        }
+    }
+
+    document.getElementById('scoreToggleButton').onclick = function() {
+        toggleVisibility('scoreAreaWrapper', 'scoreToggleButton');
+    };
+    document.getElementById('messageToggleButton').onclick = function() {
+        toggleVisibility('messageWrapper', 'messageToggleButton');
+    };
+
+    window.addEventListener('resize', resetVisibilityOnResize);
+    window.addEventListener('load', resetVisibilityOnResize);
 </script>
 {% endblock %}

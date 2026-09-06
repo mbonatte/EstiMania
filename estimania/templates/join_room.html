@@ -1,44 +1,56 @@
-
 {% extends 'base.html' %}
 
-
 {% block content %}
-<h1> Join a room</h1>
-<form>
-  <div class="form-group">
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required>
-  </div>
+<div style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 1rem 0;">
+	<div class="glass-card" style="width: 100%; max-width: 460px; border-top: 4px solid var(--accent-sapphire);">
+		<div style="text-align: center; margin-bottom: 2rem;">
+			<div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); font-size: 1.75rem; margin-bottom: 1rem;">
+				🚪
+			</div>
+			<h1 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Join a Table</h1>
+			<p style="color: var(--text-muted); font-size: 0.95rem;">Enter the room name and your nickname to take a seat.</p>
+		</div>
 
-  <div class="form-group">
-    <label for="room">Room Name:</label>
-	<input type="text" id="roomID" name="roomID" required>
-  </div>
+		<form id="joinRoomForm">
+			<div class="form-group">
+				<label for="username">Your Nickname</label>
+				<input type="text" id="username" name="username" placeholder="e.g. CardShark" required autocomplete="username">
+			</div>
 
-  <div class="form-group">
-    <label for="pin">Numerical PIN (Optional):</label>
-    <input type="text" id="pin" name="pin">
-  </div>
-  <button id='joinRoomButton' type="submit">Join Room</button>
-</form>
+			<div class="form-group">
+				<label for="roomID">Room Name / ID</label>
+				<input type="text" id="roomID" name="roomID" placeholder="e.g. ChampionsLounge" required autocomplete="off">
+			</div>
 
+			<div class="form-group">
+				<label for="pin">Room PIN <span style="font-weight: 400; color: var(--text-dim); text-transform: none;">(If protected)</span></label>
+				<input type="text" id="pin" name="pin" placeholder="Leave blank if public" pattern="[0-9]*" inputmode="numeric">
+			</div>
+
+			<button id="joinRoomButton" type="submit" class="btn" style="width: 100%; margin-top: 1rem; padding: 0.85rem;">
+				<span>🎯</span> Join Table
+			</button>
+		</form>
+	</div>
+</div>
 
 <script>
-  document.getElementById('joinRoomButton').addEventListener('click', function(event) {
-    event.preventDefault(); // Prevent the form from submitting normally
+	// Auto-fill saved username
+	const savedUser = localStorage.getItem('username');
+	if (savedUser) {
+		const userField = document.getElementById('username');
+		if (userField) userField.value = savedUser;
+	}
 
-    // Get form input values
-    var username = document.getElementById('username').value;
-    var roomID = document.getElementById('roomID').value;
+	document.getElementById('joinRoomForm').addEventListener('submit', function(event) {
+		event.preventDefault();
+		var username = document.getElementById('username').value.trim();
+		var roomID = document.getElementById('roomID').value.trim();
 
-    // Save the username to localStorage
-    localStorage.setItem('username', username);
+		if (!username || !roomID) return;
 
-    // Redirect to the room with the specified roomID
-    window.location.href = '/rooms/' + roomID;
-  });
+		localStorage.setItem('username', username);
+		window.location.href = '/rooms/' + encodeURIComponent(roomID);
+	});
 </script>
-
 {% endblock %}
-
-

@@ -1,92 +1,105 @@
-
 {% extends 'base.html' %}
 
-
 {% block content %}
+<div style="max-width: 960px; margin: 0 auto; padding: 1rem 0;">
+	<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+		<div>
+			<h1 style="font-size: 2rem; margin-bottom: 0.35rem;">Browse Tables</h1>
+			<p style="color: var(--text-muted); font-size: 0.95rem;">Join an existing table or host your own game session.</p>
+		</div>
+		<a href="/create_room" class="btn btn-emerald">
+			<span>+</span> Create New Table
+		</a>
+	</div>
 
-<style>
-.rooms-table {
-	width: 70%;
-	margin-left: auto;
-	margin-right: auto;
-}
+	<div class="glass-card" style="padding: 1.5rem;">
+		<table id="roomsTable" style="width: 100%; border-collapse: separate; border-spacing: 0 8px;">
+			<thead>
+				<tr>
+					<th style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border-subtle);">Table Name</th>
+					<th style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: center; border-bottom: 1px solid var(--border-subtle);">Players</th>
+					<th style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: right; border-bottom: 1px solid var(--border-subtle);">Action</th>
+				</tr>
+			</thead>
+			<tbody id="roomsTableBody"></tbody>
+		</table>
 
-.rooms-table thead {
-	background-color: gray;
-}
-
-.rooms-table th,
-.rooms-table td {
-	padding: 10px;
-	text-align: left;
-}
-
-.rooms-table th {
-	font-weight: bold;
-	border-bottom: 1px solid #ddd;
-}
-
-.rooms-table tbody tr:nth-child(even) {
-	background-color: gray;
-	opacity: 0.5;
-}
-
-.rooms-table tbody tr:hover {
-	background-color: #e0e0e0;
-}
-</style>
-
-<h1> Browse rooms</h1>
-<table id="roomsTable" class="rooms-table">
-  <thead>
-    <tr>
-      <th>Room Name</th>
-      <th>Number of Players</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
+		<div id="noRoomsPlaceholder" style="display: none; text-align: center; padding: 3rem 1rem;">
+			<div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🃏</div>
+			<h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #fff;">No Active Tables Found</h3>
+			<p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">There are currently no open tables waiting for players.</p>
+			<a href="/create_room" class="btn btn-emerald">Host a New Table</a>
+		</div>
+	</div>
+</div>
 
 <script>
-// Get the table body element
-const tableBody = document.querySelector('#roomsTable tbody');
+const tableBody = document.getElementById('roomsTableBody');
+const noRoomsBox = document.getElementById('noRoomsPlaceholder');
+const roomsTable = document.getElementById('roomsTable');
 
-// Function to create a table row for a room
 function createRoomRow(room, nPlayers) {
 	const row = document.createElement('tr');
+	row.style.background = 'rgba(255, 255, 255, 0.03)';
+	row.style.borderRadius = '12px';
+	row.style.transition = 'all 0.2s ease';
+
+	// Room name cell
 	const nameCell = document.createElement('td');
-	const playersCell = document.createElement('td');
-	var roomLink = document.createElement('a');
-	
-	roomLink.textContent = room;
-	roomLink.href = '/rooms/' + room;
-	nameCell.appendChild(roomLink);
+	nameCell.style.padding = '1rem 1.25rem';
+	nameCell.style.borderTopLeftRadius = '12px';
+	nameCell.style.borderBottomLeftRadius = '12px';
+	nameCell.style.fontWeight = '600';
+	nameCell.style.color = '#fff';
+	nameCell.innerHTML = `<span style="color: var(--accent-gold); margin-right: 0.5rem;">♦</span> ${room}`;
 	row.appendChild(nameCell);
 	
-	playersCell.textContent = nPlayers;
+	// Players cell
+	const playersCell = document.createElement('td');
+	playersCell.style.padding = '1rem 1.25rem';
+	playersCell.style.textAlign = 'center';
+	playersCell.innerHTML = `<span class="room-badge" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">${nPlayers} / 4</span>`;
 	row.appendChild(playersCell);
+
+	// Action cell
+	const actionCell = document.createElement('td');
+	actionCell.style.padding = '1rem 1.25rem';
+	actionCell.style.textAlign = 'right';
+	actionCell.style.borderTopRightRadius = '12px';
+	actionCell.style.borderBottomRightRadius = '12px';
+
+	const joinBtn = document.createElement('a');
+	joinBtn.href = '/rooms/' + encodeURIComponent(room);
+	joinBtn.className = 'btn';
+	joinBtn.style.padding = '0.5rem 1.1rem';
+	joinBtn.style.fontSize = '0.85rem';
+	joinBtn.textContent = 'Join Table';
+	actionCell.appendChild(joinBtn);
+	row.appendChild(actionCell);
 
 	return row;
 }
 
-// Function to populate the table with room data
 function populateRoomsTable(rooms) {
-	tableBody.innerHTML = ''; // Clear existing table rows
+	tableBody.innerHTML = '';
+	const roomKeys = Object.keys(rooms || {});
 	
-	for (var room in rooms) {
-		if (rooms.hasOwnProperty(room)) {
-			const row = createRoomRow(room, rooms[room].length);
-			tableBody.appendChild(row);
-		}
+	if (roomKeys.length === 0) {
+		roomsTable.style.display = 'none';
+		noRoomsBox.style.display = 'block';
+		return;
 	}
+
+	roomsTable.style.display = 'table';
+	noRoomsBox.style.display = 'none';
+
+	roomKeys.forEach(room => {
+		const row = createRoomRow(room, rooms[room].length);
+		tableBody.appendChild(row);
+	});
 }
 
-var roomsData = {{ rooms | tojson }};
+const roomsData = {{ rooms | tojson }};
 populateRoomsTable(roomsData);
-
 </script>
-	
 {% endblock %}
-
-
