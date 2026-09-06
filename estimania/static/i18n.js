@@ -50,7 +50,8 @@ const translations = {
         // Browse Rooms Page
         'browse.title': 'Browse Tables',
         'browse.desc': 'Join an existing table or host your own game session.',
-        'browse.btnCreate': '+ Create New Table',
+        'browse.btnCreate': 'Create New Table',
+        'browse.refresh': 'Refresh',
         'browse.colName': 'Table Name',
         'browse.colPlayers': 'Players',
         'browse.colAction': 'Action',
@@ -61,6 +62,7 @@ const translations = {
 
         // Game Room Topbar & HUD
         'room.badge': 'Room:',
+        'room.leave': 'Leave Table',
         'room.coachOn': 'Coach: ON',
         'room.coachOff': 'Coach: OFF',
         'room.coachTitle': 'Toggle Coach Mode for tips and probabilities',
@@ -183,7 +185,8 @@ const translations = {
         // Explorar Salas
         'browse.title': 'Salas Disponíveis',
         'browse.desc': 'Entre em uma mesa aberta ou crie a sua própria sessão de jogo.',
-        'browse.btnCreate': '+ Criar Nova Mesa',
+        'browse.btnCreate': 'Criar Nova Mesa',
+        'browse.refresh': 'Atualizar',
         'browse.colName': 'Nome da Mesa',
         'browse.colPlayers': 'Jogadores',
         'browse.colAction': 'Ação',
@@ -194,6 +197,7 @@ const translations = {
 
         // HUD e Mesa de Jogo
         'room.badge': 'Mesa:',
+        'room.leave': 'Sair da Mesa',
         'room.coachOn': 'Treinador: LIG',
         'room.coachOff': 'Treinador: DESL',
         'room.coachTitle': 'Alternar Modo Treinador para dicas e probabilidades',

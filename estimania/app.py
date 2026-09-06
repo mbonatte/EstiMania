@@ -60,18 +60,77 @@ def add_to_room(room_id, sid):
     redis_client.sadd(f'room:{room_id}:members', sid)
     redis_client.expire(f'room:{room_id}:members', REDIS_EXPIRE_SECONDS)
 
+def cleanup_player_and_room(sid, room_id=None):
+    """
+    Safely removes player data, prunes dead SIDs, and deletes empty rooms immediately.
+    """
+    if not room_id:
+        pdata = redis_client.hgetall(f'player:{sid}')
+        if pdata:
+            room_id = pdata.get('room_id')
+
+    delete_player(sid)
+
+    if room_id:
+        redis_client.srem(f'room:{room_id}:members', sid)
+        # Prune any stale members whose player hash expired or was deleted
+        member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
+        active_count = 0
+        for m_sid in member_sids:
+            if redis_client.exists(f'player:{m_sid}'):
+                active_count += 1
+            else:
+                redis_client.srem(f'room:{room_id}:members', m_sid)
+
+        # If no active human players remain, completely remove room
+        if active_count == 0:
+            redis_client.srem('rooms', room_id)
+            redis_client.delete(f'room:{room_id}:members')
+        else:
+            try:
+                emit_score_for_room(room_id)
+            except Exception:
+                pass
+
+def get_active_rooms():
+    """
+    Prunes empty and ghost rooms from Redis, returning only rooms with at least 1 active human player.
+    """
+    room_ids = list(redis_client.smembers('rooms'))
+    rooms_data = {}
+
+    for room_id in room_ids:
+        member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
+        active_count = 0
+        for sid in member_sids:
+            if redis_client.exists(f'player:{sid}'):
+                active_count += 1
+            else:
+                redis_client.srem(f'room:{room_id}:members', sid)
+
+        if active_count > 0:
+            rooms_data[room_id] = list(range(active_count))
+        else:
+            # Room has no active players: prune it from Redis immediately
+            redis_client.srem('rooms', room_id)
+            redis_client.delete(f'room:{room_id}:members')
+
+    return rooms_data
+
 def get_players_in_room(room_id):
-    sids = redis_client.smembers(f'room:{room_id}:members')
+    sids = list(redis_client.smembers(f'room:{room_id}:members'))
     players = []
     for sid in sids:
         data = redis_client.hgetall(f'player:{sid}')
-        if data:
+        if data and data.get('username'):
             players.append(NetworkPlayer(
                 socketio=socketio,
                 connection_id=data.get('sid'),
                 room_id=data.get('room_id'),
                 username=data.get('username')
             ))
+        else:
+            redis_client.srem(f'room:{room_id}:members', sid)
     return players
 
 def emit_score_for_room(room_id):
@@ -113,16 +172,30 @@ def join_available_room():
 @app.route('/browse_rooms')
 def browse_rooms():
     """
-    Route to browse available rooms.
+    Route to browse available rooms (cleans up any empty or ghost rooms).
     """
-    room_ids = redis_client.smembers('rooms')
-    rooms_data = {}
-
-    for room_id in room_ids:
-        n_players = redis_client.scard(f'room:{room_id}:members')
-        rooms_data[room_id] = list(range(n_players))
-
+    rooms_data = get_active_rooms()
     return render_template('browse_rooms.html', rooms=rooms_data)
+
+@app.route('/api/rooms')
+def api_rooms():
+    """
+    JSON API for live polling of available active rooms.
+    """
+    rooms_data = get_active_rooms()
+    return jsonify(rooms_data)
+
+@app.route('/api/leave_room', methods=['POST'])
+def api_leave_room():
+    """
+    Beacon/fetch endpoint to immediately unregister a player and clean up the room.
+    """
+    data = request.get_json(silent=True) or request.form or {}
+    sid = data.get('sid')
+    room_id = data.get('room_id')
+    if sid:
+        cleanup_player_and_room(sid, room_id)
+    return jsonify({'status': 'ok'})
 
 @app.route('/rooms/<room_id>')
 def room(room_id):
@@ -157,6 +230,19 @@ def handle_join_room(room_id, username):
     emit('message', f'{username} has connected!', to=room_id)    
     emit_score_for_room(room_id)
 
+@socketio.on('leave_room')
+def handle_leave_room(room_id, username):
+    """
+    Explicitly handle a player leaving a room.
+    """
+    try:
+        leave_room(room_id)
+        emit('message', f'{username} has left the table.', to=room_id)
+    except Exception:
+        pass
+    finally:
+        cleanup_player_and_room(request.sid, room_id)
+
 @socketio.on('message')
 def handle_message(data):
     """
@@ -189,21 +275,31 @@ def handle_start_game(data):
     # Gather bots in the room
     bots_in_room = [OnlineBotPlayer(room_id) for _ in range(data.get('num_bots'))]
 
-    # Gather bots in the room
+    # Total players
     total_players_in_room = online_players_in_room + bots_in_room
 
     max_turns = data.get('max_turns')
 
     # Build and run engine as a background task (non-blocking)
     def run_game():
-        engine = GameEngine(
-            rules=GameRules(max_turns),
-            players=total_players_in_room,
-            events=GameSocketEvents(socketio, room_id),
-            bot_delay=1.0,
-            trick_delay=1.2,
-        )
-        engine.run()
+        try:
+            engine = GameEngine(
+                rules=GameRules(max_turns),
+                players=total_players_in_room,
+                events=GameSocketEvents(socketio, room_id),
+                bot_delay=1.0,
+                trick_delay=1.2,
+            )
+            engine.run()
+        except Exception as e:
+            print(f"Game error in room {room_id}: {e}")
+        finally:
+            # Check if any human players remain in this room
+            member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
+            has_active = any(redis_client.exists(f'player:{s}') for s in member_sids)
+            if not has_active:
+                redis_client.srem('rooms', room_id)
+                redis_client.delete(f'room:{room_id}:members')
 
     socketio.start_background_task(run_game)
 
@@ -213,23 +309,18 @@ def handle_disconnect():
     Handle client disconnection.
     """
     player_data = redis_client.hgetall(f'player:{request.sid}')
-    if not player_data:
-        return
-    
-    room_id = player_data.get('room_id')
-    username = player_data.get('username')
+    room_id = player_data.get('room_id') if player_data else None
+    username = player_data.get('username') if player_data else None
 
-    emit('message', f'{username} has disconnected!', to=room_id)
-    emit_score_for_room(room_id)
-    
-    leave_room(room_id)
-    delete_player(request.sid)
-    redis_client.srem(f'room:{room_id}:members', request.sid)
-    
-    # If no members left in room, clean up
-    if redis_client.scard(f'room:{room_id}:members') == 0:
-        redis_client.srem('rooms', room_id)
-        redis_client.delete(f'room:{room_id}:members')
+    try:
+        if room_id:
+            leave_room(room_id)
+            if username:
+                emit('message', f'{username} has disconnected!', to=room_id)
+    except Exception:
+        pass
+    finally:
+        cleanup_player_and_room(request.sid, room_id)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

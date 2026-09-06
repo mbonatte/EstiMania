@@ -7,9 +7,14 @@
 			<h1 data-i18n="browse.title" style="font-size: 2rem; margin-bottom: 0.35rem;">Browse Tables</h1>
 			<p data-i18n="browse.desc" style="color: var(--text-muted); font-size: 0.95rem;">Join an existing table or host your own game session.</p>
 		</div>
-		<a href="/create_room" class="btn btn-emerald">
-			<span>+</span> <span data-i18n="browse.btnCreate">Create New Table</span>
-		</a>
+		<div style="display: flex; align-items: center; gap: 0.75rem;">
+			<button id="refreshRoomsBtn" class="btn btn-secondary" onclick="refreshRooms()" style="padding: 0.6rem 1rem; font-size: 0.9rem;" title="Refresh Tables">
+				<span>🔄</span> <span data-i18n="browse.refresh">Refresh</span>
+			</button>
+			<a href="/create_room" class="btn btn-emerald" style="padding: 0.6rem 1.25rem;">
+				<span>+</span> <span data-i18n="browse.btnCreate">Create New Table</span>
+			</a>
+		</div>
 	</div>
 
 	<div class="glass-card" style="padding: 1.5rem;">
@@ -73,7 +78,8 @@ function createRoomRow(room, nPlayers) {
 	joinBtn.className = 'btn';
 	joinBtn.style.padding = '0.5rem 1.1rem';
 	joinBtn.style.fontSize = '0.85rem';
-	joinBtn.textContent = 'Join Table';
+	joinBtn.setAttribute('data-i18n', 'browse.btnJoin');
+	joinBtn.textContent = (typeof t === 'function') ? t('browse.btnJoin') : 'Join Table';
 	actionCell.appendChild(joinBtn);
 	row.appendChild(actionCell);
 
@@ -94,12 +100,34 @@ function populateRoomsTable(rooms) {
 	noRoomsBox.style.display = 'none';
 
 	roomKeys.forEach(room => {
-		const row = createRoomRow(room, rooms[room].length);
+		const row = createRoomRow(room, (rooms[room] || []).length);
 		tableBody.appendChild(row);
 	});
 }
 
+function refreshRooms() {
+	fetch('/api/rooms')
+		.then(res => {
+			if (!res.ok) throw new Error('Network error');
+			return res.json();
+		})
+		.then(data => {
+			populateRoomsTable(data);
+		})
+		.catch(err => console.debug('Room refresh error:', err));
+}
+
+// Initial render from server template data
 const roomsData = {{ rooms | tojson }};
 populateRoomsTable(roomsData);
+
+// Automatically update on BFCache navigation (when user hits Back button from a room)
+window.addEventListener('pageshow', function() {
+	refreshRooms();
+});
+
+// Periodic live poll every 3.5 seconds
+const pollingInterval = setInterval(refreshRooms, 3500);
+window.addEventListener('beforeunload', () => clearInterval(pollingInterval));
 </script>
 {% endblock %}

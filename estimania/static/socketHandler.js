@@ -31,6 +31,34 @@ export default class SocketHandler {
         this.socket.on('turn', (player) => this.uiManager.highlightPlayerTurn(player));
         this.socket.on('winner-card', (card) => this.uiManager.highlightWinnerCard(card));
         this.socket.on('final-score', (scores) => this.uiManager.showFinalScore(scores));
+
+        // Clean room leave on page unload / navigation
+        window.addEventListener('beforeunload', () => this.leaveRoom());
+        window.addEventListener('pagehide', () => this.leaveRoom());
+
+        const leaveBtn = document.getElementById('leaveRoomBtn');
+        if (leaveBtn) {
+            leaveBtn.addEventListener('click', (e) => {
+                this.leaveRoom();
+            });
+        }
+    }
+
+    leaveRoom() {
+        const roomID = this.getRoomIDFromURL();
+        const sid = this.socket ? this.socket.id : null;
+        if (this.socket && this.socket.connected) {
+            try {
+                this.socket.emit('leave_room', roomID, this.userManager.getUsername());
+                this.socket.disconnect();
+            } catch (err) {}
+        }
+        try {
+            if (navigator.sendBeacon) {
+                const payload = JSON.stringify({ sid: sid, room_id: roomID });
+                navigator.sendBeacon('/api/leave_room', new Blob([payload], { type: 'application/json' }));
+            }
+        } catch (err) {}
     }
 
     getRoomIDFromURL() {

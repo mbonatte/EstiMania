@@ -14,6 +14,8 @@ class NetworkPlayer(Player):
         self.match_scores: Dict[str, int] = {}
         self.last_bets: List[int] = []
         self.last_table: List[Card] = []
+        self.is_connected: bool = True
+        self._active_wait_event: Optional[Event] = None
         super().__init__(username)
 
     @property
@@ -58,7 +60,13 @@ class NetworkPlayer(Player):
             for c in cards_str
         ]
 
-    def set_bet(self, bets, timeout=None):
+    def disconnect(self):
+        """Called when this player has disconnected to avoid blocking the game engine."""
+        self.is_connected = False
+        if self._active_wait_event is not None:
+            self._active_wait_event.set()
+
+    def set_bet(self, bets, timeout=30.0):
         self.last_bets = list(bets)
         try:
             n_adversaries = max(1, len(bets) - 1)
@@ -74,19 +82,22 @@ class NetworkPlayer(Player):
             pass
 
         response_event = Event()
+        self._active_wait_event = response_event
         callback = lambda response: self._handle_bet_response(response, response_event)
         self.socketio.emit('bet', self.username, to=self.connection_id, callback=callback)
-        response_event.wait(timeout)
+        if not response_event.wait(timeout):
+            self.bet = 0
+        self._active_wait_event = None
     
     def _handle_bet_response(self, bet, response_event):
         self.bet = bet or 0
         response_event.result = self.bet
         response_event.set()
     
-    def select_card_with_context(self, cards_in_table, active_names=None, timeout=None):
+    def select_card_with_context(self, cards_in_table, active_names=None, timeout=30.0):
         return self.select_card(cards_in_table, timeout=timeout, active_names=active_names)
 
-    def select_card(self, cards_in_table, timeout=None, active_names=None):
+    def select_card(self, cards_in_table, timeout=30.0, active_names=None):
         self.last_table = list(cards_in_table)
         try:
             advice = self.coach.get_card_recommendation(
@@ -103,16 +114,28 @@ class NetworkPlayer(Player):
             pass
 
         response_event = Event()
+        self._active_wait_event = response_event
         callback = lambda response: self._handle_card_selection(response, response_event, cards_in_table)
         self.socketio.emit('pick', self.username, to=self.connection_id, callback=callback)
 
+        card_played = None
         if response_event.wait(timeout):
             card_played = getattr(response_event, 'result', None)
             if card_played:
                 self._update_hand_after_card_selection(card_played)
+                self._active_wait_event = None
                 return card_played
         else:
             self._handle_timeout()
+        self._active_wait_event = None
+
+        # Fallback ONLY if player disconnected mid-turn to unfreeze table
+        if not self.is_connected and self.hand:
+            valid_cards = [c for c in self.hand if self.is_moviment_valid(c, cards_in_table)]
+            if valid_cards:
+                fallback_card = min(valid_cards, key=lambda c: int(c))
+                self._update_hand_after_card_selection(fallback_card)
+                return fallback_card
         return False
     
     def _handle_card_selection(self, card_str, response_event, cards_in_table):
