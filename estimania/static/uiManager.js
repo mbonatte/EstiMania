@@ -157,24 +157,27 @@ export default class UIManager {
         betModal.className = 'modal';
         betModal.innerHTML = `
             <div class="modal-content">
-                <h2>Place Your Bet</h2>
-                <p class="modal-desc">Predict exactly how many tricks you will win this round.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h2 style="margin: 0; font-size: 1.4rem;">Place Your Bet</h2>
+                    <span id="betCardsInHandBadge" class="room-badge" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">Cards in Hand: 0</span>
+                </div>
+                <p class="modal-desc" style="margin-bottom: 1rem; font-size: 0.88rem;">
+                    Examine your hand below and bets on the right.
+                </p>
                 
                 <div class="bet-chips-container" id="betQuickChips">
                     <div class="bet-chip active" data-bet="0">0</div>
                     <div class="bet-chip" data-bet="1">1</div>
                     <div class="bet-chip" data-bet="2">2</div>
                     <div class="bet-chip" data-bet="3">3</div>
-                    <div class="bet-chip" data-bet="4">4</div>
-                    <div class="bet-chip" data-bet="5">5</div>
                 </div>
 
-                <div class="modal-form-row">
-                    <label for="betInput">Or enter custom amount</label>
+                <div class="modal-form-row" style="margin-bottom: 1rem;">
+                    <label for="betInput">Custom Bet Amount</label>
                     <input type="number" min="0" max="13" id="betInput" value="0">
                 </div>
 
-                <div class="modal-actions">
+                <div class="modal-actions" style="margin-top: 1rem;">
                     <button id="submitBetButton" class="btn btn-emerald" style="width: 100%;">Confirm Bid</button>
                 </div>
             </div>
@@ -205,9 +208,14 @@ export default class UIManager {
         const betModal = document.getElementById('betModal');
         const betInput = document.getElementById('betInput');
         const submitBetButton = document.getElementById('submitBetButton');
+        const badge = document.getElementById('betCardsInHandBadge');
 
         // Dynamically adjust quick chips based on cards in hand
-        const handCount = this.handArea ? this.handArea.querySelectorAll('.card-wrapper').length : 5;
+        const handCount = this.handArea ? this.handArea.querySelectorAll('.card-wrapper').length : 0;
+        if (badge) {
+            badge.textContent = `${handCount} Card${handCount === 1 ? '' : 's'}`;
+        }
+
         const chipsContainer = document.getElementById('betQuickChips');
         if (chipsContainer) {
             chipsContainer.innerHTML = '';
@@ -227,11 +235,28 @@ export default class UIManager {
         }
         betInput.value = 0;
 
+        // Visual emphasis: highlight hand & score areas so player can inspect them
+        if (this.handArea) {
+            this.handArea.classList.add('betting-hand-highlight');
+        }
+        const scoreWrapper = document.getElementById('scoreAreaWrapper');
+        if (scoreWrapper) {
+            scoreWrapper.classList.add('betting-score-highlight');
+        }
+
         betModal.style.display = 'flex';
 
         const submitBet = () => {
             const bet = parseInt(betInput.value) || 0;
             betModal.style.display = 'none';
+
+            if (this.handArea) {
+                this.handArea.classList.remove('betting-hand-highlight');
+            }
+            if (scoreWrapper) {
+                scoreWrapper.classList.remove('betting-score-highlight');
+            }
+
             submitBetButton.removeEventListener('click', submitBet);
             console.log(`Bet submitted: ${bet}`);
             callback(bet);
@@ -239,6 +264,7 @@ export default class UIManager {
 
         submitBetButton.addEventListener('click', submitBet);
     }
+
 
     /* ========================================================================
        Card Playing Phase

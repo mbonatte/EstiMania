@@ -199,7 +199,9 @@ def handle_start_game(data):
         engine = GameEngine(
             rules=GameRules(max_turns),
             players=total_players_in_room,
-            events=GameSocketEvents(socketio, room_id)
+            events=GameSocketEvents(socketio, room_id),
+            bot_delay=1.0,
+            trick_delay=1.2,
         )
         engine.run()
 

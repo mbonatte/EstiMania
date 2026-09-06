@@ -1,4 +1,5 @@
 # game_engine.py
+import time
 from typing import List
 
 from estimania.player import Player
@@ -7,10 +8,12 @@ from estimania.game_rules import GameRules
 from estimania.game_events import GameEvents
 
 class GameEngine:
-    def __init__(self, rules: GameRules, players: List[Player], events: GameEvents):
+    def __init__(self, rules: GameRules, players: List[Player], events: GameEvents, bot_delay: float = 0.0, trick_delay: float = 0.0):
         self.rules = rules
         self.players = players
         self.events = events
+        self.bot_delay = bot_delay
+        self.trick_delay = trick_delay
         self.matches = []
         self.bets = []
         self.cards_in_table = []
@@ -23,6 +26,8 @@ class GameEngine:
         self.bets = [-1] * len(order)
         for i, p in enumerate(order):
             self.events.turn_of(p)
+            if self.bot_delay > 0 and hasattr(p, "mlp_model"):
+                time.sleep(self.bot_delay)
             p.set_bet(self.bets)
             self.bets[i] = p.bet
             self.events.score(self.players)
@@ -38,6 +43,8 @@ class GameEngine:
         Loop until the player provides a valid card (via player.select_card).
         """
         while True:
+            if self.bot_delay > 0 and hasattr(player, "mlp_model"):
+                time.sleep(self.bot_delay)
             if hasattr(player, "select_card_with_context") and active_names:
                 card_played = player.select_card_with_context(current_table, active_names)
             else:
@@ -68,6 +75,11 @@ class GameEngine:
                 p.on_trick_completed(self.cards_in_table, winner, highest, winner_name=winner_username)
         self.events.trick_winner(highest)
         self.events.score(self.players)
+        
+        # Pacing: brief pause so players can clearly see the winning card before the table clears!
+        if self.trick_delay > 0:
+            time.sleep(self.trick_delay)
+
         self.current_player_to_drop = winner
 
     def _init_round(self, n_cards: int):

@@ -1,11 +1,11 @@
 /* ==========================================================================
-   EstiMania - Game Room & Poker Table Styles
+   EstiMania - Game Room & Poker Table Styles (Fixed Dimensions & Unobscured Betting)
    ========================================================================== */
 
 #container {
   display: grid;
   grid-template-columns: 1fr 340px;
-  grid-template-rows: auto auto;
+  grid-template-rows: 350px 220px;
   grid-template-areas:
     "tableArea scoreArea"
     "handArea  messageArea";
@@ -35,8 +35,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.5rem;
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -73,19 +73,22 @@
 }
 
 /* ==========================================================================
-   The Casino Felt Poker Table
+   The Casino Felt Poker Table (FIXED 350px HEIGHT)
    ========================================================================== */
 #tableArea {
-  min-height: 340px;
+  height: 350px;
+  min-height: 350px;
+  max-height: 350px;
+  box-sizing: border-box;
   background: radial-gradient(ellipse at center, #164e3c 0%, #0e3528 65%, #071f18 100%);
   border-radius: 60px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 1.5rem;
-  padding: 2.5rem 2rem;
+  padding: 1.5rem 2rem;
   box-shadow: 
     0 0 0 10px #1a1612,
     0 0 0 13px rgba(245, 158, 11, 0.3),
@@ -115,7 +118,7 @@
 .table-empty-hint {
   color: rgba(255, 255, 255, 0.35);
   font-family: 'Outfit', sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 500;
   letter-spacing: 0.05em;
   display: flex;
@@ -126,24 +129,29 @@
 }
 
 /* ==========================================================================
-   Hand Area (Player Cards)
+   Hand Area (FIXED 220px HEIGHT)
    ========================================================================== */
 #handArea {
-  min-height: 230px;
+  height: 220px;
+  min-height: 220px;
+  max-height: 220px;
+  box-sizing: border-box;
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   box-shadow: var(--shadow-card);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   gap: 0.75rem;
   overflow-x: auto;
   overflow-y: hidden;
   position: relative;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 #handArea::-webkit-scrollbar {
@@ -153,6 +161,17 @@
 #handArea::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
+}
+
+/* Visual cue during betting turn so player clearly sees their cards */
+.betting-hand-highlight {
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 30px rgba(245, 158, 11, 0.35) !important;
+}
+
+.betting-score-highlight {
+  border-color: rgba(99, 102, 241, 0.8) !important;
+  box-shadow: 0 0 0 2px var(--primary), 0 0 25px rgba(99, 102, 241, 0.35) !important;
 }
 
 /* ==========================================================================
@@ -166,6 +185,7 @@
   transform-origin: center bottom;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
+  flex-shrink: 0;
 }
 
 .card {
@@ -184,15 +204,15 @@
 
 /* Scaled card presentation in hand & table */
 #tableArea .card-wrapper {
-  transform: scale(0.9);
-}
-
-#handArea .card-wrapper {
   transform: scale(0.85);
 }
 
+#handArea .card-wrapper {
+  transform: scale(0.8);
+}
+
 #handArea .card-wrapper:hover {
-  transform: scale(0.92) translateY(-14px);
+  transform: scale(0.88) translateY(-14px);
   z-index: 10;
 }
 
@@ -250,18 +270,24 @@
 }
 
 /* ==========================================================================
-   Scoreboard Area
+   Scoreboard Area (FIXED 350px HEIGHT)
    ========================================================================== */
 #scoreAreaWrapper {
+  height: 350px;
+  min-height: 350px;
+  max-height: 350px;
+  box-sizing: border-box;
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 #roundArea {
@@ -274,8 +300,8 @@
   color: var(--accent-gold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -292,7 +318,7 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.6rem;
   text-align: left;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -310,7 +336,7 @@
 }
 
 .score-table td {
-  padding: 0.7rem 0.75rem;
+  padding: 0.6rem 0.65rem;
   font-size: 0.95rem;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.03);
@@ -345,15 +371,19 @@
 }
 
 /* ==========================================================================
-   Chat & Message Area
+   Chat & Message Area (FIXED 220px HEIGHT)
    ========================================================================== */
 #messageWrapper {
+  height: 220px;
+  min-height: 220px;
+  max-height: 220px;
+  box-sizing: border-box;
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
@@ -361,22 +391,22 @@
 
 .chat-header {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 #messageArea {
-  height: 180px;
+  flex: 1;
   overflow-y: auto;
   padding-right: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 #messageArea::-webkit-scrollbar {
@@ -391,11 +421,11 @@
 #messageArea p {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 0.5rem 0.8rem;
-  font-size: 0.88rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
   color: #E2E8F0;
-  line-height: 1.4;
+  line-height: 1.35;
   word-break: break-word;
 }
 
@@ -409,7 +439,7 @@
   background: rgba(11, 15, 25, 0.8);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  padding: 0.65rem 0.9rem;
+  padding: 0.5rem 0.85rem;
   color: #fff;
   font-size: 0.9rem;
   outline: none;
@@ -420,7 +450,7 @@
 }
 
 #chatForm input[type="submit"], #chatForm button {
-  padding: 0.65rem 1.2rem;
+  padding: 0.5rem 1.1rem;
   border-radius: 10px;
   font-size: 0.9rem;
 }
@@ -438,10 +468,10 @@
   -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
   font-family: 'Outfit', sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  padding: 0.75rem 2rem;
+  padding: 0.65rem 1.8rem;
   border-radius: 40px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(99, 102, 241, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -467,7 +497,7 @@
 }
 
 /* ==========================================================================
-   Modal Dialogs (Betting, Game Setup)
+   Modal Dialogs (Generic & Setup)
    ========================================================================== */
 .modal {
   display: none;
@@ -488,7 +518,7 @@
   background: linear-gradient(165deg, #162036 0%, #0F172A 100%);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 24px;
-  padding: 2.25rem;
+  padding: 2rem;
   width: 90%;
   max-width: 440px;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(99, 102, 241, 0.25);
@@ -509,15 +539,40 @@
 }
 
 .modal-content h2 {
-  font-size: 1.6rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
   color: #fff;
 }
 
 .modal-content p.modal-desc {
   color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ==========================================================================
+   SPECIALIZED BETTING MODAL (TRANSPARENT BACKDROP - UNOBSCURED CARDS & TABLE)
+   ========================================================================== */
+#betModal {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  pointer-events: none; /* Let clicks pass through outside the modal */
+  align-items: center;
+  justify-content: center;
+}
+
+#betModal .modal-content {
+  pointer-events: auto; /* Active for betting buttons */
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid var(--accent-gold);
+  border-radius: 24px;
+  padding: 1.75rem 2rem;
+  max-width: 460px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(245, 158, 11, 0.35);
+  margin-top: -40px; /* Centered over felt, keeping hand completely visible below */
 }
 
 /* Quick Bet Chips Selector */
@@ -526,12 +581,12 @@
   flex-wrap: wrap;
   gap: 0.6rem;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .bet-chip {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.07);
   border: 2px solid rgba(255, 255, 255, 0.15);
@@ -578,7 +633,7 @@
 .modal-actions {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1.75rem;
+  margin-top: 1.5rem;
 }
 
 .modal-actions button {

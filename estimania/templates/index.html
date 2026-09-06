@@ -1,60 +1,25 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="hero-section" style="text-align: center; max-width: 960px; margin: 1.5rem auto 3rem;">
-	<div style="margin-bottom: 1.5rem;">
-		<img src="{{ url_for('static', filename='logo.png') }}" alt="EstiMania" style="height: 180px; width: auto; filter: drop-shadow(0 12px 24px rgba(99, 102, 241, 0.4)); animation: floatLogo 4s ease-in-out infinite;" />
+<div class="hero-section" style="text-align: center; max-width: 860px; margin: 2rem auto 3rem;">
+	<div style="margin-bottom: 2rem;">
+		<img src="{{ url_for('static', filename='logo.png') }}" alt="EstiMania Logo" style="height: 190px; width: auto; filter: drop-shadow(0 12px 24px rgba(99, 102, 241, 0.35));" />
 	</div>
 
-	<h1 style="font-size: 2.75rem; font-weight: 800; margin-bottom: 0.75rem; background: linear-gradient(135deg, #fff 40%, #A5B4FC 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-		Estimate. Bluff. Dominate.
-	</h1>
-	
-	<p style="font-size: 1.2rem; color: var(--text-muted); max-width: 680px; margin: 0 auto 2.5rem; text-align: center; line-height: 1.7;">
-		EstiMania is a trick-taking card game of precise estimation. Predict your wins, outwit your opponents, and face our trained MasterBot AI!
+	<p style="font-size: 1.25rem; color: var(--text-main); max-width: 720px; margin: 0 auto 2.5rem; text-align: center; line-height: 1.7; font-weight: 500;">
+		EstiMania: A thrilling card game of estimation. Guess rounds, calculate bets, and strategize your way to victory. Test your estimation skills and embrace the excitement of EstiMania. Ready to play? Let the games begin!
 	</p>
 
-	<div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3.5rem;">
-		<a href="/create_room" class="btn btn-emerald" style="font-size: 1.1rem; padding: 0.9rem 2rem;">
+	<div style="display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem;">
+		<a href="/create_room" class="btn btn-emerald" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
 			<span>🎮</span> Create a Room
 		</a>
-		<a href="/browse_rooms" class="btn btn-secondary" style="font-size: 1.1rem; padding: 0.9rem 2rem;">
+		<a href="/join_room" class="btn" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
+			<span>🚪</span> Join a Room
+		</a>
+		<a href="/browse_rooms" class="btn btn-secondary" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
 			<span>🔍</span> Browse Rooms
 		</a>
 	</div>
-
-	<!-- Feature Grid -->
-	<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; text-align: left;">
-		<div class="glass-card" style="padding: 1.5rem;">
-			<div style="font-size: 2rem; margin-bottom: 0.75rem;">🎯</div>
-			<h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #fff;">Exact Estimation</h3>
-			<p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
-				Predict the exact number of tricks you will win. Hit your contract to double your score, but overestimating or underestimating costs you points!
-			</p>
-		</div>
-
-		<div class="glass-card" style="padding: 1.5rem;">
-			<div style="font-size: 2rem; margin-bottom: 0.75rem;">🤖</div>
-			<h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #fff;">Trained MasterBot AI</h3>
-			<p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
-				Trained on 150,000+ self-play rounds using neural network regression, tactical ducking, sloughing, and strategic bluffing.
-			</p>
-		</div>
-
-		<div class="glass-card" style="padding: 1.5rem;">
-			<div style="font-size: 2rem; margin-bottom: 0.75rem;">👑</div>
-			<h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #fff;">Suit Hierarchy</h3>
-			<p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
-				Diamonds (Gold) trump Spades (Sword), Spades trump Hearts (Cups), and Hearts trump Clubs. Aces are always high!
-			</p>
-		</div>
-	</div>
 </div>
-
-<style>
-@keyframes floatLogo {
-	0%, 100% { transform: translateY(0px); }
-	50% { transform: translateY(-8px); }
-}
-</style>
 {% endblock %}
