@@ -1,12 +1,19 @@
 from threading import Event
+from typing import List, Optional, Dict
 from .player import Player
 from .card import Card
+from .coach_engine import CoachEngine
 
 class NetworkPlayer(Player):
     def __init__(self, socketio, connection_id, room_id=None, username=None):
         self.socketio = socketio
         self.connection_id = connection_id
         self.room_id = room_id
+        self.coach = CoachEngine()
+        self.final_round_opponent_cards: List[Card] = []
+        self.match_scores: Dict[str, int] = {}
+        self.last_bets: List[int] = []
+        self.last_table: List[Card] = []
         super().__init__(username)
 
     @property
@@ -22,7 +29,50 @@ class NetworkPlayer(Player):
         hand_data = [str(card) for card in self._hand]
         self.socketio.emit('hand', hand_data, to=self.connection_id)
     
+    def on_match_scores_updated(self, match_scores: Dict[str, int]):
+        self.match_scores = dict(match_scores)
+        if hasattr(self.coach, 'tracker'):
+            self.coach.tracker.set_match_scores(match_scores)
+
+    def on_round_started(self, n_cards: int):
+        self.final_round_opponent_cards = []
+        if hasattr(self.coach, 'tracker'):
+            self.coach.tracker.reset_round()
+
+    def on_bets_placed(self, contracts: Dict[str, int]):
+        if hasattr(self.coach, 'tracker'):
+            self.coach.tracker.set_opponent_contracts(contracts)
+
+    def on_trick_completed(self, cards_in_table: List[Card], winner_idx: int, highest_card: Card, winner_name: Optional[str] = None):
+        if hasattr(self.coach, 'tracker'):
+            if cards_in_table:
+                lead_suit = cards_in_table[0].suit
+                for c in cards_in_table:
+                    self.coach.tracker.record_trick_card("unknown", c, lead_suit)
+            if winner_name:
+                self.coach.tracker.record_trick_winner(winner_name)
+
+    def see_opponents_cards(self, cards_str: List[str], other_players):
+        self.final_round_opponent_cards = [
+            Card.convert_str_to_Card(c) if isinstance(c, str) else c
+            for c in cards_str
+        ]
+
     def set_bet(self, bets, timeout=None):
+        self.last_bets = list(bets)
+        try:
+            n_adversaries = max(1, len(bets) - 1)
+            advice = self.coach.get_bet_recommendations(
+                hand=self.hand,
+                n_adversaries=n_adversaries,
+                current_bets=bets,
+                final_round_opp_cards=self.final_round_opponent_cards,
+                scores=self.match_scores,
+            )
+            self.socketio.emit('coach_bet_advice', advice, to=self.connection_id)
+        except Exception:
+            pass
+
         response_event = Event()
         callback = lambda response: self._handle_bet_response(response, response_event)
         self.socketio.emit('bet', self.username, to=self.connection_id, callback=callback)
@@ -33,7 +83,25 @@ class NetworkPlayer(Player):
         response_event.result = self.bet
         response_event.set()
     
-    def select_card(self, cards_in_table, timeout=None):
+    def select_card_with_context(self, cards_in_table, active_names=None, timeout=None):
+        return self.select_card(cards_in_table, timeout=timeout, active_names=active_names)
+
+    def select_card(self, cards_in_table, timeout=None, active_names=None):
+        self.last_table = list(cards_in_table)
+        try:
+            advice = self.coach.get_card_recommendation(
+                hand=self.hand,
+                cards_in_table=cards_in_table,
+                bet=self.bet if self.bet is not None and self.bet >= 0 else 0,
+                score_in_turn=self.score_in_turn,
+                total_players=len(active_names) if active_names else 4,
+                my_name=self.username,
+                active_player_names=active_names,
+            )
+            self.socketio.emit('coach_card_advice', advice, to=self.connection_id)
+        except Exception:
+            pass
+
         response_event = Event()
         callback = lambda response: self._handle_card_selection(response, response_event, cards_in_table)
         self.socketio.emit('pick', self.username, to=self.connection_id, callback=callback)

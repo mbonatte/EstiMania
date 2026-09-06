@@ -12,6 +12,12 @@ export default class UIManager {
         this.currentScores = [];
         this._lastErrorMsg = null;
         this._lastErrorTime = 0;
+
+        // Coach / Beginner Mode state (persisted in localStorage, default ON)
+        const savedCoachMode = localStorage.getItem('estimania_coach_mode');
+        this.coachModeEnabled = (savedCoachMode !== null) ? (savedCoachMode === 'true') : true;
+        this.latestBetAdvice = null;
+        this.latestCardAdvice = null;
         
         this.createBetModal();
         this.createSetupModal();
@@ -22,6 +28,7 @@ export default class UIManager {
     initialize(socketHandler) {
         this.socketHandler = socketHandler;
         this.setupEventListeners(socketHandler);
+        this.updateCoachToggleBtnUI();
     }
 
     setupEventListeners(socketHandler) {
@@ -54,6 +61,16 @@ export default class UIManager {
         const pointsBtnTop = document.getElementById('viewOverallPointsBtnTop');
         if (pointsBtnTop) {
             pointsBtnTop.addEventListener('click', () => this.showOverallPointsModal());
+        }
+
+        const coachToggleBtn = document.getElementById('coachModeToggleBtn');
+        if (coachToggleBtn) {
+            coachToggleBtn.addEventListener('click', () => {
+                this.coachModeEnabled = !this.coachModeEnabled;
+                localStorage.setItem('estimania_coach_mode', this.coachModeEnabled);
+                this.updateCoachToggleBtnUI();
+                this.applyCoachModeVisibility();
+            });
         }
     }
 
@@ -174,9 +191,18 @@ export default class UIManager {
                     <h2 style="margin: 0; font-size: 1.4rem;">Place Your Bet</h2>
                     <span id="betCardsInHandBadge" class="room-badge" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">Cards in Hand: 0</span>
                 </div>
-                <p class="modal-desc" style="margin-bottom: 1rem; font-size: 0.88rem;">
+                <p class="modal-desc" style="margin-bottom: 0.75rem; font-size: 0.88rem;">
                     Examine your hand below and current bids in the scoreboard.
                 </p>
+
+                <!-- Coach Mode Win Probabilities & Rationale Banner -->
+                <div id="coachBetTipContainer" class="coach-bet-tip-box" style="display: none;">
+                    <div class="coach-bet-tip-header">
+                        <span class="coach-bet-tip-title"><span>🎓</span> Coach Advice</span>
+                        <span id="coachBetTipProbBadge" class="coach-prob-badge"></span>
+                    </div>
+                    <div id="coachBetTipText" class="coach-bet-tip-body"></div>
+                </div>
                 
                 <div class="bet-chips-container" id="betQuickChips">
                     <div class="bet-chip active" data-bet="0">0</div>
@@ -197,19 +223,10 @@ export default class UIManager {
         `;
         document.body.appendChild(betModal);
 
-        const chips = betModal.querySelectorAll('.bet-chip');
         const betInput = betModal.querySelector('#betInput');
-
-        chips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                chips.forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                betInput.value = chip.dataset.bet;
-            });
-        });
-
         betInput.addEventListener('input', () => {
             const val = betInput.value;
+            const chips = betModal.querySelectorAll('.bet-chip');
             chips.forEach(c => {
                 if (c.dataset.bet === val) c.classList.add('active');
                 else c.classList.remove('active');
@@ -235,9 +252,22 @@ export default class UIManager {
             const maxChip = Math.max(handCount, 3);
             for (let i = 0; i <= maxChip; i++) {
                 const chip = document.createElement('div');
-                chip.className = `bet-chip ${i === 0 ? 'active' : ''}`;
+                chip.className = 'bet-chip';
                 chip.dataset.bet = i;
-                chip.textContent = i;
+
+                let chipHtml = `<span class="chip-val">${i}</span>`;
+                if (this.coachModeEnabled && this.latestBetAdvice && this.latestBetAdvice.win_probabilities) {
+                    const prob = this.latestBetAdvice.win_probabilities[i];
+                    if (prob !== undefined) {
+                        chipHtml += `<span class="chip-prob">${prob}%</span>`;
+                    }
+                    if (this.latestBetAdvice.recommended_bet === i) {
+                        chip.classList.add('chip-recommended');
+                        chipHtml += `<span class="chip-rec-badge">★ Best</span>`;
+                    }
+                }
+                chip.innerHTML = chipHtml;
+
                 chip.addEventListener('click', () => {
                     chipsContainer.querySelectorAll('.bet-chip').forEach(c => c.classList.remove('active'));
                     chip.classList.add('active');
@@ -245,8 +275,18 @@ export default class UIManager {
                 });
                 chipsContainer.appendChild(chip);
             }
+
+            // Determine initial selected bet: if coach mode recommended a bet, preselect it!
+            let defaultBet = 0;
+            if (this.coachModeEnabled && this.latestBetAdvice && this.latestBetAdvice.recommended_bet !== undefined) {
+                defaultBet = this.latestBetAdvice.recommended_bet;
+            }
+            const activeChip = chipsContainer.querySelector(`.bet-chip[data-bet='${defaultBet}']`);
+            if (activeChip) activeChip.classList.add('active');
+            betInput.value = defaultBet;
         }
-        betInput.value = 0;
+
+        this.updateBetModalCoachUI();
 
         // Visual emphasis: highlight hand & score areas so player can inspect them
         if (this.handArea) {
@@ -278,9 +318,87 @@ export default class UIManager {
         submitBetButton.addEventListener('click', submitBet);
     }
 
+    updateBetModalCoachUI() {
+        const coachBox = document.getElementById('coachBetTipContainer');
+        const coachText = document.getElementById('coachBetTipText');
+        const coachBadge = document.getElementById('coachBetTipProbBadge');
+        if (!coachBox) return;
+
+        if (this.coachModeEnabled && this.latestBetAdvice) {
+            coachBox.style.display = 'block';
+            if (coachText) coachText.textContent = this.latestBetAdvice.tip || "Analyze your cards and select your contract.";
+            if (coachBadge && this.latestBetAdvice.recommended_bet !== undefined) {
+                const rec = this.latestBetAdvice.recommended_bet;
+                const prob = this.latestBetAdvice.win_probabilities ? this.latestBetAdvice.win_probabilities[rec] : null;
+                coachBadge.textContent = `★ Recommended: ${rec}` + (prob !== null && prob !== undefined ? ` (${prob}%)` : '');
+            }
+        } else {
+            coachBox.style.display = 'none';
+        }
+
+        // Also update probabilities on chips if they exist
+        const chipsContainer = document.getElementById('betQuickChips');
+        if (chipsContainer) {
+            const chips = chipsContainer.querySelectorAll('.bet-chip');
+            chips.forEach(chip => {
+                const val = parseInt(chip.dataset.bet);
+                let valSpan = chip.querySelector('.chip-val');
+                let probSpan = chip.querySelector('.chip-prob');
+                let recBadge = chip.querySelector('.chip-rec-badge');
+
+                if (this.coachModeEnabled && this.latestBetAdvice && this.latestBetAdvice.win_probabilities) {
+                    const prob = this.latestBetAdvice.win_probabilities[val];
+                    if (!valSpan) {
+                        chip.innerHTML = `<span class="chip-val">${val}</span>`;
+                        valSpan = chip.querySelector('.chip-val');
+                    }
+                    if (prob !== undefined) {
+                        if (!probSpan) {
+                            probSpan = document.createElement('span');
+                            probSpan.className = 'chip-prob';
+                            chip.appendChild(probSpan);
+                        }
+                        probSpan.textContent = `${prob}%`;
+                        probSpan.style.display = 'inline-block';
+                    }
+                    if (this.latestBetAdvice.recommended_bet === val) {
+                        chip.classList.add('chip-recommended');
+                        if (!recBadge) {
+                            recBadge = document.createElement('span');
+                            recBadge.className = 'chip-rec-badge';
+                            recBadge.textContent = '★ Best';
+                            chip.appendChild(recBadge);
+                        }
+                    } else {
+                        chip.classList.remove('chip-recommended');
+                        if (recBadge) recBadge.remove();
+                    }
+                } else {
+                    if (probSpan) probSpan.style.display = 'none';
+                    if (recBadge) recBadge.remove();
+                    chip.classList.remove('chip-recommended');
+                }
+            });
+        }
+    }
+
+    onCoachBetAdvice(data) {
+        this.latestBetAdvice = data;
+        const betModal = document.getElementById('betModal');
+        if (betModal && betModal.style.display === 'flex') {
+            this.updateBetModalCoachUI();
+        }
+    }
+
+    onCoachCardAdvice(data) {
+        this.latestCardAdvice = data;
+        if (this.activeCardPickCallback) {
+            this.applyCoachCardAdviceUI();
+        }
+    }
 
     /* ========================================================================
-       Card Playing Phase
+       Card Playing Phase & Coach Recommendations
        ======================================================================== */
     handleCardPick(callback) {
         this.bringAttention("Your Turn! Pick a card to play");
@@ -293,6 +411,7 @@ export default class UIManager {
             const clickedCard = cardElement.dataset.card || cardElement.id;
             this.disableCardSelection();
             this.removeFloatingText();
+            this.hideCoachTipBanner();
             console.log(`Card selected: ${clickedCard}`);
             if (this.activeCardPickCallback) {
                 const cb = this.activeCardPickCallback;
@@ -305,6 +424,59 @@ export default class UIManager {
             card.classList.add('playable');
             card.addEventListener('click', this.cardClickHandler);
         });
+
+        this.applyCoachCardAdviceUI();
+    }
+
+    applyCoachCardAdviceUI() {
+        if (!this.handArea) return;
+        // Clean previous card recommendation styling
+        this.handArea.querySelectorAll('.card-wrapper').forEach(w => {
+            w.classList.remove('card-wrapper-recommended');
+            const b = w.querySelector('.coach-card-badge');
+            if (b) b.remove();
+        });
+
+        if (!this.coachModeEnabled || !this.latestCardAdvice) {
+            this.hideCoachTipBanner();
+            return;
+        }
+
+        const recCard = this.latestCardAdvice.recommended_card;
+        if (recCard) {
+            // Locate the card in hand
+            const cardEl = this.handArea.querySelector(`.card[data-card='${recCard}'], .card[id='${recCard}']`);
+            if (cardEl && cardEl.parentElement) {
+                const wrapper = cardEl.parentElement;
+                wrapper.classList.add('card-wrapper-recommended');
+                const badge = document.createElement('span');
+                badge.className = 'coach-card-badge';
+                badge.innerHTML = `★ Coach Pick`;
+                wrapper.appendChild(badge);
+            }
+        }
+
+        // Show Coach Tip Banner
+        if (this.latestCardAdvice.tip) {
+            this.showCoachTipBanner(this.latestCardAdvice.tip, this.latestCardAdvice.action_type);
+        }
+    }
+
+    showCoachTipBanner(text, actionType = 'normal') {
+        const banner = document.getElementById('coachTipBanner');
+        const tipText = document.getElementById('coachTipText');
+        if (!banner || !tipText) return;
+
+        tipText.textContent = text;
+        banner.className = `coach-tip-banner coach-tip-${actionType}`;
+        banner.style.display = 'flex';
+    }
+
+    hideCoachTipBanner() {
+        const banner = document.getElementById('coachTipBanner');
+        if (banner) {
+            banner.style.display = 'none';
+        }
     }
 
     disableCardSelection() {
@@ -316,8 +488,44 @@ export default class UIManager {
                     card.removeEventListener('click', this.cardClickHandler);
                 }
             });
+            this.handArea.querySelectorAll('.card-wrapper-recommended').forEach(w => {
+                w.classList.remove('card-wrapper-recommended');
+                const b = w.querySelector('.coach-card-badge');
+                if (b) b.remove();
+            });
         }
         this.cardClickHandler = null;
+        this.hideCoachTipBanner();
+    }
+
+    updateCoachToggleBtnUI() {
+        const btn = document.getElementById('coachModeToggleBtn');
+        const label = document.getElementById('coachModeLabel');
+        if (!btn) return;
+        if (this.coachModeEnabled) {
+            btn.classList.add('active');
+            if (label) label.textContent = 'Coach: ON';
+        } else {
+            btn.classList.remove('active');
+            if (label) label.textContent = 'Coach: OFF';
+        }
+    }
+
+    applyCoachModeVisibility() {
+        this.updateCoachToggleBtnUI();
+        this.updateBetModalCoachUI();
+        if (this.activeCardPickCallback) {
+            this.applyCoachCardAdviceUI();
+        } else {
+            this.hideCoachTipBanner();
+            if (this.handArea) {
+                this.handArea.querySelectorAll('.card-wrapper-recommended').forEach(w => {
+                    w.classList.remove('card-wrapper-recommended');
+                    const b = w.querySelector('.coach-card-badge');
+                    if (b) b.remove();
+                });
+            }
+        }
     }
 
     /* ========================================================================
@@ -351,6 +559,9 @@ export default class UIManager {
             const cardWrapper = this.createCardWrapper(card);
             this.handArea.appendChild(cardWrapper);
         });
+        if (this.activeCardPickCallback) {
+            this.applyCoachCardAdviceUI();
+        }
         console.log("Updating hand area with user cards: ", userCards);
     }
 

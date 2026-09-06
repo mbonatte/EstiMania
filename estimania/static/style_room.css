@@ -805,6 +805,254 @@
   border-color: rgba(245, 158, 11, 0.4);
 }
 
-.final-score-table tr.winner-row td:first-child {
+.final_score-table tr.winner-row td:first-child {
   border-left: 4px solid var(--accent-gold);
+}
+
+/* ==========================================================================
+   COACH / BEGINNER ('NOOB') MODE STYLING
+   ========================================================================== */
+
+/* Topbar Coach Toggle Button */
+.btn-coach-toggle {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-coach-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-coach-toggle.active {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: #10B981;
+  color: #34D399;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-coach-toggle.active .coach-icon {
+  animation: coachBounce 2s infinite ease-in-out;
+}
+
+@keyframes coachBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Betting Modal Coach Box */
+.coach-bet-tip-box {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.1rem;
+  text-align: left;
+  animation: fadeIn 0.2s ease;
+}
+
+.coach-bet-tip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.coach-bet-tip-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #34D399;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.coach-prob-badge {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--accent-gold);
+  color: #F59E0B;
+  border-radius: 20px;
+}
+
+.coach-bet-tip-body {
+  font-size: 0.85rem;
+  color: #E2E8F0;
+  line-height: 1.35;
+}
+
+/* Enhanced Bet Chips with Probabilities */
+.bet-chip {
+  min-width: 52px;
+  height: 52px;
+  position: relative;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bet-chip .chip-val {
+  font-size: 1.05rem;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.bet-chip .chip-prob {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #34D399;
+  line-height: 1;
+}
+
+.bet-chip.chip-recommended {
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+}
+
+.chip-rec-badge {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  background: var(--accent-gold);
+  color: #0F172A;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
+}
+
+/* Card Playing Recommendation Highlight & Glow */
+.card-wrapper-recommended {
+  position: relative;
+}
+
+.card-wrapper-recommended .card {
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.8), 0 0 45px rgba(245, 158, 11, 0.35) !important;
+  border: 2px solid var(--accent-gold) !important;
+  transform: translateY(-10px) !important;
+  animation: recCardPulse 2s infinite ease-in-out;
+}
+
+@keyframes recCardPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(245, 158, 11, 1), 0 0 55px rgba(245, 158, 11, 0.55);
+  }
+}
+
+.coach-card-badge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #0F172A;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 12px;
+  white-space: nowrap;
+  z-index: 15;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  letter-spacing: 0.03em;
+}
+
+/* Tactical Tip Floating Banner */
+.coach-tip-banner {
+  margin: 0.5rem auto 0.75rem auto;
+  max-width: 580px;
+  width: 92%;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 16px;
+  padding: 0.6rem 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.coach-tip-banner.coach-tip-duck {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.18);
+}
+
+.coach-tip-banner.coach-tip-duck .coach-tip-badge {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38BDF8;
+  color: #38BDF8;
+}
+
+.coach-tip-banner.coach-tip-win {
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.18);
+}
+
+.coach-tip-banner.coach-tip-win .coach-tip-badge {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10B981;
+  color: #34D399;
+}
+
+.coach-tip-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  color: #F1F5F9;
+}
+
+.coach-tip-badge {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.coach-tip-text {
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

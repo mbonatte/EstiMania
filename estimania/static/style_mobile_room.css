@@ -153,6 +153,46 @@
   .score-header-row #roundArea {
     font-size: 1rem;
   }
+
+  #floatingText {
+    top: 60px;
+    font-size: 0.85rem;
+    padding: 0.45rem 1rem;
+    max-width: 88vw;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  /* Coach Mode Mobile Adjustments */
+  .coach-tip-banner {
+    padding: 0.45rem 0.75rem;
+    margin: 0.35rem auto 0.5rem auto;
+    border-radius: 12px;
+  }
+
+  .coach-tip-content {
+    font-size: 0.8rem;
+    gap: 0.5rem;
+  }
+
+  .coach-tip-badge {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+  }
+
+  .bet-chip {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .bet-chip .chip-val {
+    font-size: 0.95rem;
+  }
+
+  .bet-chip .chip-prob {
+    font-size: 0.6rem;
+  }
 }
 
 @media (min-width: 901px) {

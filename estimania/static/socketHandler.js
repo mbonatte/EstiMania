@@ -20,6 +20,8 @@ export default class SocketHandler {
         this.socket.on('error', (msg) => this.uiManager.showError(msg));
         this.socket.on('message', (msg) => this.uiManager.appendMessage(msg));
         this.socket.on('remove_start_game_btn', () => this.uiManager.removeStartGameButton());
+        this.socket.on('coach_bet_advice', (data) => this.uiManager.onCoachBetAdvice(data));
+        this.socket.on('coach_card_advice', (data) => this.uiManager.onCoachCardAdvice(data));
         this.socket.on('bet', (username, callback) => this.uiManager.showBetInputForm(callback));
         this.socket.on('pick', (username, callback) => this.uiManager.handleCardPick(callback));
         this.socket.on('table', (data) => this.uiManager.updateTable(data));

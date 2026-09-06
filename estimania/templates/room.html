@@ -15,12 +15,22 @@
         </div>
     </div>
     <div class="room-topbar-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+        <button id="coachModeToggleBtn" class="btn btn-coach-toggle active" title="Toggle Coach Mode for tips and probabilities">
+            <span class="coach-icon">🎓</span> <span id="coachModeLabel">Coach: ON</span>
+        </button>
         <button id="viewOverallPointsBtnTop" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 0.85rem;">
             <span>🏆</span> Standings
         </button>
         <button id="startGameButton" class="btn btn-emerald">
             <span>♠</span> Start Match
         </button>
+    </div>
+</div>
+
+<div id="coachTipBanner" class="coach-tip-banner" style="display: none;">
+    <div class="coach-tip-content">
+        <span class="coach-tip-badge">🎓 Coach Tip</span>
+        <span class="coach-tip-text" id="coachTipText"></span>
     </div>
 </div>
 
