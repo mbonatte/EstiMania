@@ -1,0 +1,285 @@
+import os
+import random
+import copy
+import time
+import pickle
+from typing import List, Dict, Tuple
+import numpy as np
+
+from estimania.deck import Deck
+from estimania.card import Card
+from estimania.game_rules import GameRules
+from estimania.card_tracker import CardTracker
+from estimania.card_play_engine import CardPlayEngine
+
+# Genome parameter names and search bounds
+PARAM_SPECS = {
+    'diamond_weight': (0.8, 1.5),
+    'spade_weight': (0.5, 1.2),
+    'heart_weight': (0.3, 0.9),
+    'club_weight': (0.1, 0.6),
+    'ace_bonus': (0.4, 1.4),
+    'king_queen_bonus': (0.2, 0.9),
+    'short_suit_bonus': (0.0, 0.8),
+    'zero_bid_safety_margin': (0.1, 0.9),
+    'sabotage_weight': (0.2, 1.2),
+    'catchup_aggression': (0.0, 1.0),
+}
+
+PARAM_KEYS = list(PARAM_SPECS.keys())
+
+def random_genome() -> Dict[str, float]:
+    return {k: random.uniform(low, high) for k, (low, high) in PARAM_SPECS.items()}
+
+def clamp_genome(genome: Dict[str, float]) -> Dict[str, float]:
+    clamped = {}
+    for k, (low, high) in PARAM_SPECS.items():
+        clamped[k] = max(low, min(high, genome.get(k, (low + high) / 2)))
+    return clamped
+
+class GABot:
+    """A bot configured with genome weights for bidding & play."""
+    def __init__(self, name: str, genome: Dict[str, float]):
+        self.name = name
+        self.genome = genome
+        self.hand: List[Card] = []
+        self.bet = 0
+        self.score_in_turn = 0
+        self.score = 0
+        self.tracker = CardTracker()
+        self.play_engine = CardPlayEngine(self.tracker)
+        self.play_engine.sabotage_weight = genome.get('sabotage_weight', 0.75)
+
+    def evaluate_bidding(self, n_adversaries: int, current_bets: List[int], leader_score: int) -> int:
+        n_cards = len(self.hand)
+        if n_cards == 0:
+            return 0
+
+        # Weighted card evaluation
+        suit_weights = {
+            'Diamonds': self.genome['diamond_weight'],
+            'Spades': self.genome['spade_weight'],
+            'Hearts': self.genome['heart_weight'],
+            'Clubs': self.genome['club_weight'],
+        }
+
+        est_tricks = 0.0
+        suit_counts = {'Diamonds': 0, 'Spades': 0, 'Hearts': 0, 'Clubs': 0}
+
+        for c in self.hand:
+            suit_counts[c.suit] += 1
+            sw = suit_weights.get(c.suit, 0.5)
+            rank = int(c.value)  # 1..13
+
+            # Rank evaluation
+            if rank == 1:  # Ace
+                est_tricks += 0.85 * sw * self.genome['ace_bonus']
+            elif rank in [13, 12]:  # King, Queen
+                est_tricks += 0.60 * sw * self.genome['king_queen_bonus']
+            elif rank >= 9:
+                est_tricks += 0.35 * sw
+            else:
+                est_tricks += 0.05 * sw
+
+        # Short suit / void advantage
+        voids_or_singletons = sum(1 for cnt in suit_counts.values() if cnt <= 1)
+        est_tricks += voids_or_singletons * self.genome['short_suit_bonus'] * 0.15
+
+        # Catchup bonus if behind the leader
+        deficit = leader_score - self.score
+        if deficit > 3 and n_cards >= 3:
+            est_tricks += self.genome['catchup_aggression'] * 0.4
+
+        # Zero bid threshold
+        raw_bet = int(round(est_tricks))
+        if est_tricks < self.genome['zero_bid_safety_margin']:
+            raw_bet = 0
+
+        return min(n_cards, max(0, raw_bet))
+
+    def select_card(self, cards_in_table: List[Card], total_players: int, active_names: List[str]) -> Card:
+        card = self.play_engine.select_card(
+            hand=self.hand,
+            cards_in_table=cards_in_table,
+            bet=self.bet,
+            score_in_turn=self.score_in_turn,
+            total_players=total_players,
+            my_name=self.name,
+            active_player_names=active_names,
+        )
+        self.hand.remove(card)
+        return card
+
+def play_match(genome: Dict[str, float], num_turns: int = 4) -> int:
+    """Play a complete match against 3 baseline opponents and return points scored."""
+    rules = GameRules()
+    player_ga = GABot("GABot", genome)
+    
+    # Diverse baseline opponents
+    default_g = {k: (low + high) / 2 for k, (low, high) in PARAM_SPECS.items()}
+    p_heuristic = GABot("Heuristic", default_g)
+    
+    aggressive_g = dict(default_g)
+    aggressive_g['ace_bonus'] = 1.3
+    p_aggressive = GABot("Aggressive", aggressive_g)
+
+    cautious_g = dict(default_g)
+    cautious_g['zero_bid_safety_margin'] = 0.8
+    p_cautious = GABot("Cautious", cautious_g)
+
+    players = [player_ga, p_heuristic, p_aggressive, p_cautious]
+    total_players = len(players)
+
+    for turn_idx in range(1, num_turns + 1):
+        n_cards = turn_idx
+        deck = Deck()
+        for p in players:
+            p.hand = sorted(deck.deal(n_cards), reverse=True)
+            p.tracker.reset_round()
+            p.tracker.register_my_hand(p.hand)
+            p.score_in_turn = 0
+
+        # Highest score leader
+        leader_score = max(p.score for p in players)
+
+        # Collect bets
+        current_bets = []
+        contracts_dict = {}
+        for p in players:
+            b = p.evaluate_bidding(total_players - 1, current_bets, leader_score)
+            p.bet = b
+            current_bets.append(b)
+            contracts_dict[p.name] = b
+
+        for p in players:
+            p.tracker.set_opponent_contracts(contracts_dict)
+
+        # Play tricks
+        lead_idx = turn_idx % total_players
+        for _ in range(n_cards):
+            trick_order = players[lead_idx:] + players[:lead_idx]
+            cards_in_table = []
+            active_names = [p.name for p in trick_order]
+
+            for p in trick_order:
+                c = p.select_card(cards_in_table, total_players, active_names)
+                cards_in_table.append(c)
+
+            lead_suit = cards_in_table[0].suit
+            for p_played, c_played in zip(trick_order, cards_in_table):
+                for obs in players:
+                    obs.tracker.record_trick_card(p_played.name, c_played, lead_suit)
+
+            winner_offset, _ = rules.evaluate_trick_winner(cards_in_table, lead_idx)
+            winner = players[winner_offset]
+            winner.score_in_turn += 1
+            for obs in players:
+                obs.tracker.record_trick_winner(winner.name)
+            lead_idx = winner_offset
+
+        # End of turn scoring
+        for p in players:
+            if p.bet == p.score_in_turn:
+                pts = 1 if p.bet == 0 else 2 * p.bet
+            else:
+                pts = -abs(p.bet - p.score_in_turn)
+            p.score += pts
+
+    return player_ga.score
+
+def evaluate_fitness(genome: Dict[str, float], matches_per_eval: int = 15) -> float:
+    """Evaluate genome over multiple matches."""
+    scores = [play_match(genome) for _ in range(matches_per_eval)]
+    return float(np.mean(scores))
+
+def crossover(parent1: Dict[str, float], parent2: Dict[str, float]) -> Dict[str, float]:
+    """BLX-alpha blend crossover."""
+    alpha = 0.3
+    child = {}
+    for k in PARAM_KEYS:
+        v1, v2 = parent1[k], parent2[k]
+        d = abs(v1 - v2)
+        min_v = min(v1, v2) - alpha * d
+        max_v = max(v1, v2) + alpha * d
+        child[k] = random.uniform(min_v, max_v)
+    return clamp_genome(child)
+
+def mutate(genome: Dict[str, float], mutation_rate: float = 0.25) -> Dict[str, float]:
+    """Gaussian mutation respecting parameter bounds."""
+    mutated = dict(genome)
+    for k in PARAM_KEYS:
+        if random.random() < mutation_rate:
+            low, high = PARAM_SPECS[k]
+            scale = (high - low) * 0.15
+            mutated[k] += random.gauss(0, scale)
+    return clamp_genome(mutated)
+
+def run_genetic_algorithm(
+    population_size: int = 24,
+    generations: int = 12,
+    matches_per_eval: int = 12,
+) -> Dict[str, float]:
+    """
+    Run Genetic Algorithm optimization and return the best evolved parameter set.
+    """
+    print(f"\n========================================================")
+    print(f"  GENETIC ALGORITHM EVOLUTIONARY TRAINING")
+    print(f"  Population: {population_size} | Generations: {generations} | Matches/Eval: {matches_per_eval}")
+    print(f"========================================================\n")
+
+    start_time = time.time()
+    # Initialize random population
+    population = [random_genome() for _ in range(population_size)]
+    best_overall_genome = None
+    best_overall_fitness = float('-inf')
+
+    for gen in range(generations):
+        gen_start = time.time()
+        # Evaluate fitness for all individuals
+        fitness_scores = [evaluate_fitness(ind, matches_per_eval) for ind in population]
+
+        gen_best_idx = int(np.argmax(fitness_scores))
+        gen_best_fitness = fitness_scores[gen_best_idx]
+        gen_avg_fitness = float(np.mean(fitness_scores))
+
+        if gen_best_fitness > best_overall_fitness:
+            best_overall_fitness = gen_best_fitness
+            best_overall_genome = copy.deepcopy(population[gen_best_idx])
+
+        gen_time = time.time() - gen_start
+        print(f"Gen {gen + 1:02d}/{generations:02d} - Best: {gen_best_fitness:+.2f} pts | Avg: {gen_avg_fitness:+.2f} pts | Time: {gen_time:.1f}s")
+
+        # Selection: Tournament selection (k=3)
+        selected_parents = []
+        for _ in range(population_size):
+            k_indices = random.sample(range(population_size), 3)
+            best_k = max(k_indices, key=lambda idx: fitness_scores[idx])
+            selected_parents.append(population[best_k])
+
+        # Reproduction: Elitism (keep top 2) + Crossover + Mutation
+        sorted_indices = np.argsort(fitness_scores)[::-1]
+        next_gen = [copy.deepcopy(population[sorted_indices[0]]), copy.deepcopy(population[sorted_indices[1]])]
+
+        while len(next_gen) < population_size:
+            p1, p2 = random.sample(selected_parents, 2)
+            child = crossover(p1, p2)
+            child = mutate(child)
+            next_gen.append(child)
+
+        population = next_gen
+
+    total_time = time.time() - start_time
+    print(f"\nGA Optimization Finished in {total_time:.1f}s! Best Fitness: {best_overall_fitness:+.2f} pts")
+    print(f"Best Evolved Parameters:")
+    for k, v in best_overall_genome.items():
+        print(f"  {k}: {v:.4f}")
+
+    return best_overall_genome
+
+if __name__ == '__main__':
+    best = run_genetic_algorithm(population_size=20, generations=10, matches_per_eval=10)
+    out_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ga_weights.pkl')
+    with open(out_path, 'wb') as f:
+        pickle.dump(best, f)
+    print(f"Exported evolved weights to {out_path}")
+

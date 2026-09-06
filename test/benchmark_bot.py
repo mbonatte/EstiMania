@@ -87,14 +87,14 @@ class LegacyBotPlayer(Player):
 def run_tournament(num_matches=250, num_turns=4):
     print(f"\n========================================================")
     print(f"  RUNNING TOURNAMENT BENCHMARK ({num_matches} Matches, 4 Players)")
-    print(f"  Players: [Trained MasterBot, Legacy Bot, Random 1, Random 2]")
+    print(f"  Players: [GrandmasterBot, LegacyBot, Random 1, Random 2]")
     print(f"========================================================\n")
 
-    wins = {"MasterBot": 0, "LegacyBot": 0, "Random1": 0, "Random2": 0}
-    total_scores = {"MasterBot": 0, "LegacyBot": 0, "Random1": 0, "Random2": 0}
+    wins = {"Grandmaster": 0, "LegacyBot": 0, "Random1": 0, "Random2": 0}
+    total_scores = {"Grandmaster": 0, "LegacyBot": 0, "Random1": 0, "Random2": 0}
 
     for m in range(num_matches):
-        p_master = BotPlayer("MasterBot")
+        p_master = BotPlayer("Grandmaster")
         p_legacy = LegacyBotPlayer("LegacyBot")
         p_rand1 = RandomPlayer("Random1")
         p_rand2 = RandomPlayer("Random2")
@@ -115,22 +115,22 @@ def run_tournament(num_matches=250, num_turns=4):
             if p.score == best_score:
                 wins[p.username] += 1
 
-    print("--- TOURNAMENT RESULTS ---")
-    for name in ["MasterBot", "LegacyBot", "Random1", "Random2"]:
+    print("--- 4-PLAYER TOURNAMENT RESULTS ---")
+    for name in ["Grandmaster", "LegacyBot", "Random1", "Random2"]:
         avg_score = total_scores[name] / num_matches
         win_pct = (wins[name] / num_matches) * 100
-        print(f"{name:12s} | Wins: {wins[name]:3d} ({win_pct:5.1f}%) | Avg Score: {avg_score:6.2f} pts | Total Score: {total_scores[name]:5d}")
+        print(f"{name:15s} | Wins: {wins[name]:3d} ({win_pct:5.1f}%) | Avg Score: {avg_score:6.2f} pts | Total Score: {total_scores[name]:5d}")
 
-    # Head-to-head 2-player match: MasterBot vs LegacyBot
+    # Head-to-head 2-player match: Grandmaster vs LegacyBot
     print(f"\n========================================================")
-    print(f"  HEAD-TO-HEAD MATCH: MasterBot vs LegacyBot (200 Matches)")
+    print(f"  HEAD-TO-HEAD MATCH: Grandmaster vs LegacyBot (200 Matches)")
     print(f"========================================================\n")
 
-    h2h_wins = {"MasterBot": 0, "LegacyBot": 0}
-    h2h_scores = {"MasterBot": 0, "LegacyBot": 0}
+    h2h_wins = {"Grandmaster": 0, "LegacyBot": 0}
+    h2h_scores = {"Grandmaster": 0, "LegacyBot": 0}
 
     for m in range(200):
-        p_master = BotPlayer("MasterBot")
+        p_master = BotPlayer("Grandmaster")
         p_legacy = LegacyBotPlayer("LegacyBot")
         players = [p_master, p_legacy]
         random.shuffle(players)
@@ -146,10 +146,10 @@ def run_tournament(num_matches=250, num_turns=4):
             if p.score == best:
                 h2h_wins[p.username] += 1
 
-    for name in ["MasterBot", "LegacyBot"]:
+    for name in ["Grandmaster", "LegacyBot"]:
         avg_score = h2h_scores[name] / 200
         win_pct = (h2h_wins[name] / 200) * 100
-        print(f"{name:12s} | Wins: {h2h_wins[name]:3d} ({win_pct:5.1f}%) | Avg Score: {avg_score:6.2f} pts")
+        print(f"{name:15s} | Wins: {h2h_wins[name]:3d} ({win_pct:5.1f}%) | Avg Score: {avg_score:6.2f} pts")
 
 if __name__ == '__main__':
     run_tournament()

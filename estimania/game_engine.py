@@ -27,12 +27,22 @@ class GameEngine:
             self.bets[i] = p.bet
             self.events.score(self.players)
 
-    def _play_select_card_turn(self, player, current_table):
+        # Notify players of all placed contracts for adversarial sabotage
+        contracts = {q.username: q.bet for q in self.players if q.bet is not None}
+        for p in self.players:
+            if hasattr(p, "on_bets_placed"):
+                p.on_bets_placed(contracts)
+
+    def _play_select_card_turn(self, player, current_table, active_names=None):
         """
         Loop until the player provides a valid card (via player.select_card).
         """
         while True:
-            card_played = player.select_card(current_table)
+            if hasattr(player, "select_card_with_context") and active_names:
+                card_played = player.select_card_with_context(current_table, active_names)
+            else:
+                card_played = player.select_card(current_table)
+
             if card_played is False:
                 # timeout/invalid
                 self.events.error(player, "Please select a valid card")
@@ -42,24 +52,29 @@ class GameEngine:
     def _play_one_trick(self):
         self.cards_in_table = []
         order = self.players[self.current_player_to_drop:] + self.players[:self.current_player_to_drop]
+        active_names = [q.username for q in order]
         for p in order:
             self.events.turn_of(p)
-            card = self._play_select_card_turn(p, self.cards_in_table)
+            card = self._play_select_card_turn(p, self.cards_in_table, active_names=active_names)
             self.cards_in_table.append(card)
-            self.events.table([str(c) for c in self.cards_in_table], [q.username for q in order])
+            self.events.table([str(c) for c in self.cards_in_table], active_names)
 
         winner, highest = self.rules.evaluate_trick_winner(self.cards_in_table, self.current_player_to_drop)
         
         self.players[winner].score_in_turn += 1
+        winner_username = self.players[winner].username
         for p in self.players:
             if hasattr(p, "on_trick_completed"):
-                p.on_trick_completed(self.cards_in_table, winner, highest)
+                p.on_trick_completed(self.cards_in_table, winner, highest, winner_name=winner_username)
         self.events.trick_winner(highest)
         self.events.score(self.players)
         self.current_player_to_drop = winner
 
     def _init_round(self, n_cards: int):
+        match_scores = {q.username: q.score for q in self.players}
         for p in self.players:
+            if hasattr(p, "on_match_scores_updated"):
+                p.on_match_scores_updated(match_scores)
             if hasattr(p, "on_round_started"):
                 p.on_round_started(n_cards)
         self.rules.deal(self.players, n_cards)
@@ -103,3 +118,4 @@ class GameEngine:
         self._final_round()
 
         self.events.final_scores(self.players)
+

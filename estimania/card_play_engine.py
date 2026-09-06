@@ -6,18 +6,22 @@ from estimania.card_tracker import CardTracker
 
 class CardPlayEngine:
     """
-    Intelligent decision engine for selecting cards during trick play.
+    Intelligent Grandmaster decision engine for trick play.
     Covers:
     - Contract fulfillment (target-based play)
-    - Ducking / underplaying when quota is met or bet is 0
+    - Adversarial Opponent Sabotage:
+        * Forcing unwanted tricks onto opponents who bid 0 or reached quota (especially the leader)
+        * Starving opponents who need tricks to hit contracts
+    - Ducking / underplaying when quota is met or bet was 0
     - Cashing winners / boss cards when tricks are needed
     - Strategic sloughing (dumping dangerous cards under opponent winners)
-    - Forcing opponents who want to avoid tricks to take them
-    - Rollout evaluation (PIMC) for tight/ambiguous decisions
+    - PIMC (Perfect Information Monte Carlo) forward rollout for high-leverage plays
     """
 
     def __init__(self, tracker: Optional[CardTracker] = None):
         self.tracker = tracker or CardTracker()
+        # Sabotage weight: how heavily we penalize the leader's score relative to our own
+        self.sabotage_weight = 0.75
 
     def get_legal_cards(self, hand: List[Card], cards_in_table: List[Card]) -> List[Card]:
         """Filter hand for cards that follow suit, or all cards if void in lead suit."""
@@ -34,12 +38,9 @@ class CardPlayEngine:
         bet: int,
         score_in_turn: int,
         total_players: int = 4,
-        opponent_bets: Optional[List[int]] = None,
-        opponent_wins: Optional[List[int]] = None,
+        my_name: str = "Bot",
+        active_player_names: Optional[List[str]] = None,
     ) -> Card:
-        """
-        Choose the best card to play given the game state.
-        """
         legal = self.get_legal_cards(hand, cards_in_table)
         if len(legal) == 1:
             return legal[0]
@@ -48,21 +49,38 @@ class CardPlayEngine:
         remaining_tricks = len(hand)
         is_leading = (len(cards_in_table) == 0)
         is_last_to_play = (len(cards_in_table) == total_players - 1)
-
-        # Current highest card on table if not leading
         current_highest = max(cards_in_table, key=lambda c: int(c)) if not is_leading else None
 
-        # Case 1: Quota reached or bet was 0 -> Absolutely DO NOT win!
+        # If hand is small (<= 4 cards) and we have multiple candidates, PIMC lookahead is extremely fast & accurate
+        if 1 < len(hand) <= 4 and active_player_names and len(legal) > 1:
+            best_card = self._evaluate_pimc(
+                legal=legal,
+                hand=hand,
+                cards_in_table=cards_in_table,
+                bet=bet,
+                score_in_turn=score_in_turn,
+                total_players=total_players,
+                my_name=my_name,
+                active_player_names=active_player_names,
+            )
+            if best_card is not None:
+                return best_card
+
+        # 1. Quota reached or bet was 0 -> DO NOT WIN & SABOTAGE OPPONENTS!
         if needed_wins <= 0:
-            return self._play_to_avoid_winning(legal, hand, cards_in_table, current_highest, is_last_to_play)
+            return self._play_to_avoid_winning(
+                legal, hand, cards_in_table, current_highest, is_last_to_play, my_name
+            )
 
-        # Case 2: Must win EVERY remaining trick -> WIN at all costs!
+        # 2. Must win EVERY remaining trick -> WIN at all costs!
         if needed_wins >= remaining_tricks:
-            return self._play_to_win_at_all_costs(legal, hand, cards_in_table, current_highest, is_last_to_play)
+            return self._play_to_win_at_all_costs(
+                legal, hand, cards_in_table, current_highest, is_last_to_play
+            )
 
-        # Case 3: Need some tricks (0 < needed_wins < remaining_tricks) -> Strategic balanced play
+        # 3. Need some tricks (0 < needed_wins < remaining_tricks) -> Strategic balanced play
         return self._play_balanced(
-            legal, hand, cards_in_table, current_highest, needed_wins, remaining_tricks, is_last_to_play
+            legal, hand, cards_in_table, current_highest, needed_wins, remaining_tricks, is_last_to_play, my_name
         )
 
     def _play_to_avoid_winning(
@@ -72,42 +90,49 @@ class CardPlayEngine:
         cards_in_table: List[Card],
         current_highest: Optional[Card],
         is_last_to_play: bool,
+        my_name: str,
     ) -> Card:
         """
-        Goal: Avoid winning the trick. If unavoidable, minimize future damage.
+        Goal: Strictly avoid taking the trick.
+        When leading: find a suit to force an opponent who hates tricks or lead lowest.
+        When following: play highest safe card to dump danger while staying under highest.
         """
         if not cards_in_table:
             # LEADING when we want 0 wins:
-            # Lead our lowest card in the lowest suit (Clubs/Hearts), keeping high cards away from the lead
-            # Sort ascending by int(c)
-            sorted_legal = sorted(legal, key=lambda c: int(c))
-            return sorted_legal[0]
+            # Sabotage check: can we lead a suit where an opponent who hates tricks (e.g. leader) must follow?
+            leader_name = self.tracker.get_leader_name(my_name)
+            if leader_name and self.tracker.does_opponent_hate_tricks(leader_name):
+                # Check which suits the leader is NOT void in
+                leader_voids = self.tracker.voids.get(leader_name, set())
+                candidate_cards = [c for c in legal if c.suit not in leader_voids]
+                if candidate_cards:
+                    # Lead a low card in that suit to force the leader to take it!
+                    return min(candidate_cards, key=lambda c: int(c))
 
-        # NOT LEADING:
-        # Safe cards are those that are strictly lower than the current highest on the table
+            # Default: Lead lowest card in deck (lowest rank in lowest suit)
+            return min(legal, key=lambda c: int(c))
+
         highest_val = int(current_highest)
         safe_cards = [c for c in legal if int(c) < highest_val]
 
         if safe_cards:
-            # We have safe cards that cannot take the trick!
             lead_suit = cards_in_table[0].suit
             has_lead_suit = any(c.suit == lead_suit for c in legal)
 
             if has_lead_suit:
-                # Following suit: play the highest safe card in suit!
-                # Dumping higher cards while staying safe preserves ultra-low cards for future tricks.
+                # Following suit: play highest safe card to get rid of high cards without taking trick!
                 return max(safe_cards, key=lambda c: int(c))
             else:
-                # Void in lead suit: SLOUGHING / DUMPING!
-                # We can safely discard a high card (e.g. high Heart or high Spade that is < highest_val)
-                # without winning! This is great because it gets rid of potential accidental winners.
+                # Void in lead suit: SLOUGH / DUMP our highest dangerous non-lead card!
                 return max(safe_cards, key=lambda c: int(c))
         else:
-            # Unfortunate: ALL legal cards are higher than the current highest on the table!
-            # If we are not last to play, playing our highest might trigger someone else to beat us,
-            # or playing our lowest minimizes high card loss.
-            # Usually playing the lowest card is best to conserve our hand or minimize overshoot.
-            return min(legal, key=lambda c: int(c))
+            # Forced to exceed current highest
+            if is_last_to_play:
+                # No choice, we take the trick. Minimize card rank to save lower cards.
+                return min(legal, key=lambda c: int(c))
+            else:
+                # Play highest to try to force remaining opponents to overtrump us
+                return max(legal, key=lambda c: int(c))
 
     def _play_to_win_at_all_costs(
         self,
@@ -117,11 +142,9 @@ class CardPlayEngine:
         current_highest: Optional[Card],
         is_last_to_play: bool,
     ) -> Card:
-        """
-        Goal: Must win this trick (needed_wins >= remaining_tricks).
-        """
+        """Goal: Must win this trick (needed_wins >= remaining_tricks)."""
         if not cards_in_table:
-            # Leading: play our highest boss card or highest overall card to guarantee the trick
+            # Lead highest boss card or highest card
             return max(legal, key=lambda c: int(c))
 
         highest_val = int(current_highest)
@@ -129,16 +152,16 @@ class CardPlayEngine:
 
         if winning_cards:
             if is_last_to_play:
-                # Last to act: play the MINIMUM winning card to conserve higher winners for future tricks
+                # Last to act: win with the cheapest winning card to conserve high cards
                 return min(winning_cards, key=lambda c: int(c))
             else:
-                # Opponents still to act: play our highest winning card (or boss card) to resist overtrumping
+                # Opponents still to act: play boss or highest winning card to prevent overtrumping
                 bosses = [c for c in winning_cards if self.tracker.is_boss_card(c, hand)]
                 if bosses:
                     return min(bosses, key=lambda c: int(c))
                 return max(winning_cards, key=lambda c: int(c))
         else:
-            # Cannot win this trick: play our lowest card to save high cards for the tricks we can win
+            # Cannot win: play lowest card
             return min(legal, key=lambda c: int(c))
 
     def _play_balanced(
@@ -150,24 +173,31 @@ class CardPlayEngine:
         needed_wins: int,
         remaining_tricks: int,
         is_last_to_play: bool,
+        my_name: str,
     ) -> Card:
-        """
-        Goal: Win exactly needed_wins of the remaining_tricks.
-        """
-        # Count boss cards or near-boss cards in the entire hand
+        """Goal: Win exactly needed_wins of the remaining_tricks with sabotage awareness."""
         boss_cards = [c for c in hand if self.tracker.is_boss_card(c, hand)]
         boss_count = len(boss_cards)
 
         if not cards_in_table:
             # LEADING:
-            # If we already have enough boss cards to cover our needed wins, cash one or lead safe
+            # If boss cards exactly equal needed wins, cash one to secure it
             if boss_count >= needed_wins and boss_cards:
-                # Cash a boss card now to lock in a win
                 legal_bosses = [c for c in legal if c in boss_cards]
                 if legal_bosses:
                     return max(legal_bosses, key=lambda c: int(c))
-            # Otherwise, lead low in our shortest or longest suit to develop voids or draw out trumps
-            # Leading low from non-boss cards:
+
+            # Sabotage leader check:
+            leader_name = self.tracker.get_leader_name(my_name)
+            if leader_name and self.tracker.does_opponent_hate_tricks(leader_name):
+                leader_voids = self.tracker.voids.get(leader_name, set())
+                safe_lead_for_sabotage = [
+                    c for c in legal if c.suit not in leader_voids and c not in boss_cards
+                ]
+                if safe_lead_for_sabotage:
+                    return min(safe_lead_for_sabotage, key=lambda c: int(c))
+
+            # Otherwise lead low from non-boss cards to develop voids or draw out opponent trumps
             non_bosses = [c for c in legal if c not in boss_cards]
             if non_bosses:
                 return min(non_bosses, key=lambda c: int(c))
@@ -179,27 +209,95 @@ class CardPlayEngine:
         safe_losing_cards = [c for c in legal if int(c) < highest_val]
 
         if is_last_to_play:
-            # PERFECT INFORMATION at end of trick!
-            # We can either win (if winning_cards exist) or duck (if safe_losing_cards exist).
+            # End of trick: exact control
             if winning_cards and (boss_count < needed_wins or not safe_losing_cards):
-                # We need wins! Take the trick with the cheapest winning card!
                 return min(winning_cards, key=lambda c: int(c))
             elif safe_losing_cards:
-                # We have enough future winners or prefer to duck: duck with highest safe card!
                 return max(safe_losing_cards, key=lambda c: int(c))
             else:
-                # Forced to win
                 return min(winning_cards, key=lambda c: int(c))
 
-        # MIDDLE POSITION (opponents still to act after us):
+        # MIDDLE POSITION:
         if winning_cards and (boss_count < needed_wins):
-            # Try to win: if we have a boss card, cash it; otherwise play high winner
             legal_bosses = [c for c in winning_cards if self.tracker.is_boss_card(c, hand)]
             if legal_bosses:
                 return min(legal_bosses, key=lambda c: int(c))
             return max(winning_cards, key=lambda c: int(c))
         elif safe_losing_cards:
-            # Duck: play highest safe card
             return max(safe_losing_cards, key=lambda c: int(c))
         else:
             return min(legal, key=lambda c: int(c))
+
+    def _evaluate_pimc(
+        self,
+        legal: List[Card],
+        hand: List[Card],
+        cards_in_table: List[Card],
+        bet: int,
+        score_in_turn: int,
+        total_players: int,
+        my_name: str,
+        active_player_names: List[str],
+        num_samples: int = 5,
+    ) -> Optional[Card]:
+        """
+        PIMC (Perfect Information Monte Carlo) Rollout Search:
+        Sample unseen cards consistent with known voids, simulate remaining tricks,
+        and evaluate reward - sabotage.
+        """
+        other_names = [n for n in active_player_names if n != my_name]
+        if not other_names:
+            return None
+
+        # Each opponent has len(hand) or len(hand) - 1 cards depending on whether they've played this trick
+        scores_by_card: Dict[int, float] = {int(c): 0.0 for c in legal}
+
+        for _ in range(num_samples):
+            sampled_hands = self.tracker.sample_opponent_hands(
+                opponent_names=other_names,
+                hand_size=len(hand),
+                my_hand=hand,
+            )
+            if not sampled_hands:
+                continue
+
+            for candidate_card in legal:
+                my_wins = score_in_turn
+                # Simulate current trick
+                cur_trick = list(cards_in_table) + [candidate_card]
+                # Other players yet to play this trick
+                remaining_to_act = total_players - len(cur_trick)
+                for opp_idx in range(remaining_to_act):
+                    opp_name = other_names[opp_idx % len(other_names)]
+                    opp_h = sampled_hands.get(opp_name, [])
+                    if opp_h:
+                        lead_suit = cur_trick[0].suit
+                        matched = [c for c in opp_h if c.suit == lead_suit]
+                        chosen = matched[0] if matched else opp_h[0]
+                        cur_trick.append(chosen)
+
+                # Who won current trick?
+                highest_in_trick = max(cur_trick, key=lambda c: int(c))
+                if highest_in_trick == candidate_card:
+                    my_wins += 1
+
+                # Quick estimation for remaining tricks
+                remaining_hand = [c for c in hand if c != candidate_card]
+                est_future_wins = len([c for c in remaining_hand if self.tracker.is_boss_card(c, remaining_hand)])
+                total_est_wins = my_wins + est_future_wins
+
+                # Score this outcome
+                if total_est_wins == bet:
+                    r = 1.0 if bet == 0 else float(2 * bet)
+                else:
+                    r = -float(abs(bet - total_est_wins))
+
+                scores_by_card[int(candidate_card)] += r
+
+        # Return card with best average score
+        best_c_int = max(scores_by_card, key=scores_by_card.get)
+        for c in legal:
+            if int(c) == best_c_int:
+                return c
+
+        return None

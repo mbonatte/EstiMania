@@ -34,40 +34,37 @@ class SimPlayer:
                 return False
         return True
 
-    def select_card(self, cards_in_table: List[Card], total_players: int) -> Card:
+    def select_card(self, cards_in_table: List[Card], total_players: int, active_names: List[str]) -> Card:
         card = self.play_engine.select_card(
             hand=self.hand,
             cards_in_table=cards_in_table,
             bet=self.bet,
             score_in_turn=self.score_in_turn,
             total_players=total_players,
+            my_name=self.name,
+            active_player_names=active_names,
         )
         self.hand.remove(card)
         return card
 
 def estimate_hand_heuristic_wins(hand: List[Card], n_players: int) -> int:
-    """
-    Fast heuristic estimate of how many tricks a hand can win:
-    - High Diamonds (Ace, King, Queen) almost always win.
-    - Aces of other suits win ~60-80%.
-    - Spades with high rank win frequently.
-    """
+    """Fast heuristic estimate of how many tricks a hand can win."""
     wins = 0.0
     for c in hand:
         val = int(c)
-        if val == 52:  # Ace of Diamonds (highest card in deck)
+        if val == 52:
             wins += 0.95
-        elif val >= 48:  # 10..King of Diamonds
+        elif val >= 48:
             wins += 0.80
-        elif val >= 40:  # Other Diamonds
+        elif val >= 40:
             wins += 0.55
-        elif val == 39:  # Ace of Spades
+        elif val == 39:
             wins += 0.70
-        elif val >= 35:  # High Spades
+        elif val >= 35:
             wins += 0.50
-        elif val == 26:  # Ace of Hearts
+        elif val == 26:
             wins += 0.40
-        elif val == 13:  # Ace of Clubs
+        elif val == 13:
             wins += 0.25
         else:
             wins += 0.05
@@ -79,7 +76,7 @@ def simulate_single_round(
     bet_policy_model=None,
 ) -> List[Tuple[List[float], float]]:
     """
-    Simulate one round of n_cards with num_players.
+    Simulate one round of n_cards with num_players using Grandmaster play engines.
     Returns list of (feature_vector, actual_reward) training samples.
     """
     players = [SimPlayer(f"P{i}") for i in range(num_players)]
@@ -95,11 +92,11 @@ def simulate_single_round(
 
     # Collect bets sequentially
     current_bets = [-1] * num_players
+    contracts_dict = {}
     hand_snapshots = {i: list(players[i].hand) for i in range(num_players)}
 
     for i, p in enumerate(players):
         if bet_policy_model is not None:
-            # Evaluate all candidate bets 0..n_cards using model
             best_b = 0
             best_pred = float('-inf')
             for cand_b in range(n_cards + 1):
@@ -110,19 +107,25 @@ def simulate_single_round(
                     best_b = cand_b
             p.bet = best_b
         else:
-            # Heuristic bet
             est = estimate_hand_heuristic_wins(p.hand, num_players)
             p.bet = min(n_cards, max(0, est))
 
         current_bets[i] = p.bet
+        contracts_dict[p.name] = p.bet
+
+    # Broadcast contracts to all trackers for adversarial sabotage
+    for p in players:
+        p.tracker.set_opponent_contracts(contracts_dict)
 
     # Play tricks
     lead_player_idx = 0
     for _ in range(n_cards):
         trick_order = players[lead_player_idx:] + players[:lead_player_idx]
         cards_in_table = []
+        active_names = [p.name for p in trick_order]
+
         for p in trick_order:
-            card = p.select_card(cards_in_table, total_players=num_players)
+            card = p.select_card(cards_in_table, total_players=num_players, active_names=active_names)
             cards_in_table.append(card)
 
         # Notify trackers
@@ -133,14 +136,13 @@ def simulate_single_round(
 
         # Evaluate trick winner
         winner_offset, highest_card = rules.evaluate_trick_winner(cards_in_table, lead_player_idx)
-        # winner_offset in rotated order maps to winner player in players list
-        players[winner_offset].score_in_turn += 1
+        winner = players[winner_offset]
+        winner.score_in_turn += 1
+        for observer in players:
+            observer.tracker.record_trick_winner(winner.name)
         lead_player_idx = winner_offset
 
-    # Now generate training records:
-    # For each player, we know their hand, the prior bets at their turn,
-    # and their actual trick wins.
-    # We can evaluate what the reward WOULD have been for any candidate bet 0..n_cards!
+    # Generate training records
     training_samples = []
     prior_bets_tracker = [-1] * num_players
 

@@ -52,7 +52,7 @@ def generate_dataset(num_rounds: int, bet_policy_model=None, verbose: bool = Tru
             all_X.append(feats)
             all_y.append(reward)
 
-        if verbose and (r + 1) % 1000 == 0:
+        if verbose and (r + 1) % 2000 == 0:
             elapsed = time.time() - start_time
             print(f"  Completed {r + 1}/{num_rounds} rounds ({len(all_X)} samples) in {elapsed:.1f}s")
 
@@ -63,8 +63,8 @@ def generate_dataset(num_rounds: int, bet_policy_model=None, verbose: bool = Tru
     return np.array(all_X, dtype=np.float32), np.array(all_y, dtype=np.float32)
 
 def train_and_export(
-    num_rounds_phase1: int = 4000,
-    num_rounds_phase2: int = 4000,
+    num_rounds_phase1: int = 5000,
+    num_rounds_phase2: int = 5000,
     export_path: str = None,
 ):
     if export_path is None:
@@ -75,11 +75,11 @@ def train_and_export(
     X1, y1 = generate_dataset(num_rounds_phase1, bet_policy_model=None)
 
     mlp = MLPRegressor(
-        hidden_layer_sizes=(64, 32, 16),
+        hidden_layer_sizes=(128, 64, 32),
         activation='relu',
         solver='adam',
         alpha=1e-4,
-        learning_rate_init=0.003,
+        learning_rate_init=0.002,
         max_iter=150,
         random_state=42,
         early_stopping=True,
@@ -106,12 +106,12 @@ def train_and_export(
 
     print(f"Final training set size: {len(X_train)} samples, Test set size: {len(X_test)} samples")
     final_mlp = MLPRegressor(
-        hidden_layer_sizes=(64, 32, 16),
+        hidden_layer_sizes=(128, 64, 32),
         activation='relu',
         solver='adam',
         alpha=1e-4,
-        learning_rate_init=0.002,
-        max_iter=200,
+        learning_rate_init=0.0015,
+        max_iter=250,
         random_state=42,
         early_stopping=True,
         validation_fraction=0.1,
@@ -121,7 +121,7 @@ def train_and_export(
     test_pred = final_mlp.predict(X_test)
     mse = mean_squared_error(y_test, test_pred)
     r2 = r2_score(y_test, test_pred)
-    print(f"Final Model Evaluation - Test MSE: {mse:.4f}, Test R2: {r2:.4f}")
+    print(f"Final Grandmaster Model Evaluation - Test MSE: {mse:.4f}, Test R2: {r2:.4f}")
 
     # Export weights for CustomMLPRegressor
     export_data = {
@@ -133,7 +133,7 @@ def train_and_export(
     with open(export_path, 'wb') as f:
         pickle.dump(export_data, f)
 
-    print(f"Trained model exported successfully to: {export_path}")
+    print(f"Grandmaster model exported successfully to: {export_path}")
     return export_path
 
 if __name__ == '__main__':
