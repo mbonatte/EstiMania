@@ -1,3 +1,5 @@
+import os
+import pickle
 import random
 from typing import List, Dict, Tuple
 from estimania.deck import Deck
@@ -6,6 +8,15 @@ from estimania.game_rules import GameRules
 from estimania.card_play_engine import CardPlayEngine
 from estimania.card_tracker import CardTracker
 from estimania.features import extract_hand_features
+
+ga_weights_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ga_weights.pkl')
+ga_weights = None
+if os.path.exists(ga_weights_path):
+    try:
+        with open(ga_weights_path, 'rb') as f:
+            ga_weights = pickle.load(f)
+    except Exception:
+        ga_weights = None
 
 def compute_reward(bet: int, actual_wins: int) -> float:
     """Compute score/reward according to EstiMania rules."""
@@ -22,6 +33,8 @@ class SimPlayer:
         self.score: int = 0
         self.tracker = CardTracker()
         self.play_engine = CardPlayEngine(self.tracker)
+        if ga_weights and 'sabotage_weight' in ga_weights:
+            self.play_engine.sabotage_weight = ga_weights['sabotage_weight']
 
     def is_moviment_valid(self, card_selected: Card, cards_in_table: List[Card]) -> bool:
         if len(cards_in_table) == 0:
@@ -49,6 +62,33 @@ class SimPlayer:
 
 def estimate_hand_heuristic_wins(hand: List[Card], n_players: int) -> int:
     """Fast heuristic estimate of how many tricks a hand can win."""
+    if ga_weights:
+        suit_weights = {
+            'Diamonds': ga_weights.get('diamond_weight', 1.45),
+            'Spades': ga_weights.get('spade_weight', 1.15),
+            'Hearts': ga_weights.get('heart_weight', 0.35),
+            'Clubs': ga_weights.get('club_weight', 0.34),
+        }
+        est_tricks = 0.0
+        suit_counts = {'Diamonds': 0, 'Spades': 0, 'Hearts': 0, 'Clubs': 0}
+        for c in hand:
+            suit_counts[c.suit] += 1
+            sw = suit_weights.get(c.suit, 0.5)
+            rank = int(c.value)
+            if rank == 1:
+                est_tricks += 0.85 * sw * ga_weights.get('ace_bonus', 0.6)
+            elif rank in [13, 12]:
+                est_tricks += 0.60 * sw * ga_weights.get('king_queen_bonus', 0.9)
+            elif rank >= 9:
+                est_tricks += 0.35 * sw
+            else:
+                est_tricks += 0.05 * sw
+        voids_or_singletons = sum(1 for cnt in suit_counts.values() if cnt <= 1)
+        est_tricks += voids_or_singletons * ga_weights.get('short_suit_bonus', 0.5) * 0.15
+        if est_tricks < ga_weights.get('zero_bid_safety_margin', 0.7):
+            return 0
+        return int(round(est_tricks))
+
     wins = 0.0
     for c in hand:
         val = int(c)

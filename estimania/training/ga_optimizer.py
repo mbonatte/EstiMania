@@ -110,8 +110,10 @@ class GABot:
         self.hand.remove(card)
         return card
 
-def play_match(genome: Dict[str, float], num_turns: int = 4) -> int:
-    """Play a complete match against 3 baseline opponents and return points scored."""
+from multiprocessing import Pool
+
+def play_match(genome: Dict[str, float], num_turns: int = 4, champion_genome: Dict[str, float] = None) -> int:
+    """Play a complete match against diverse baseline opponents and return points scored."""
     rules = GameRules()
     player_ga = GABot("GABot", genome)
     
@@ -123,11 +125,14 @@ def play_match(genome: Dict[str, float], num_turns: int = 4) -> int:
     aggressive_g['ace_bonus'] = 1.3
     p_aggressive = GABot("Aggressive", aggressive_g)
 
-    cautious_g = dict(default_g)
-    cautious_g['zero_bid_safety_margin'] = 0.8
-    p_cautious = GABot("Cautious", cautious_g)
+    if champion_genome:
+        p_fourth = GABot("PastChampion", champion_genome)
+    else:
+        cautious_g = dict(default_g)
+        cautious_g['zero_bid_safety_margin'] = 0.8
+        p_fourth = GABot("Cautious", cautious_g)
 
-    players = [player_ga, p_heuristic, p_aggressive, p_cautious]
+    players = [player_ga, p_heuristic, p_aggressive, p_fourth]
     total_players = len(players)
 
     for turn_idx in range(1, num_turns + 1):
@@ -187,9 +192,9 @@ def play_match(genome: Dict[str, float], num_turns: int = 4) -> int:
 
     return player_ga.score
 
-def evaluate_fitness(genome: Dict[str, float], matches_per_eval: int = 15) -> float:
-    """Evaluate genome over multiple matches."""
-    scores = [play_match(genome) for _ in range(matches_per_eval)]
+def _eval_individual_worker(args) -> float:
+    genome, matches_per_eval, champion_genome = args
+    scores = [play_match(genome, num_turns=4, champion_genome=champion_genome) for _ in range(matches_per_eval)]
     return float(np.mean(scores))
 
 def crossover(parent1: Dict[str, float], parent2: Dict[str, float]) -> Dict[str, float]:
@@ -215,71 +220,110 @@ def mutate(genome: Dict[str, float], mutation_rate: float = 0.25) -> Dict[str, f
     return clamp_genome(mutated)
 
 def run_genetic_algorithm(
-    population_size: int = 24,
-    generations: int = 12,
-    matches_per_eval: int = 12,
+    population_size: int = 28,
+    generations: int = 150,
+    matches_per_eval: int = 16,
+    seed_genome: Dict[str, float] = None,
+    workers: int = 12,
+    export_path: str = None,
 ) -> Dict[str, float]:
     """
-    Run Genetic Algorithm optimization and return the best evolved parameter set.
+    Run Genetic Algorithm optimization using multi-core evaluation and seeded population.
     """
+    if export_path is None:
+        export_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ga_weights.pkl')
+
+    if seed_genome is None and os.path.exists(export_path):
+        try:
+            with open(export_path, 'rb') as f:
+                seed_genome = pickle.load(f)
+            print(f"Loaded existing champion seed genome from: {export_path}")
+        except Exception:
+            seed_genome = None
+
     print(f"\n========================================================")
-    print(f"  GENETIC ALGORITHM EVOLUTIONARY TRAINING")
+    print(f"  GENETIC ALGORITHM EVOLUTIONARY TRAINING (BATCH 2)")
     print(f"  Population: {population_size} | Generations: {generations} | Matches/Eval: {matches_per_eval}")
+    print(f"  Workers: {workers} cores | Seeded: {'Yes' if seed_genome else 'Random'}")
     print(f"========================================================\n")
 
     start_time = time.time()
-    # Initialize random population
-    population = [random_genome() for _ in range(population_size)]
-    best_overall_genome = None
+    # Initialize population (seeded with previous champion and mutations if available)
+    population = []
+    if seed_genome:
+        population.append(copy.deepcopy(seed_genome))
+        for _ in range(population_size // 3):
+            population.append(mutate(copy.deepcopy(seed_genome), mutation_rate=0.18))
+    while len(population) < population_size:
+        population.append(random_genome())
+
+    best_overall_genome = copy.deepcopy(seed_genome) if seed_genome else None
     best_overall_fitness = float('-inf')
 
-    for gen in range(generations):
-        gen_start = time.time()
-        # Evaluate fitness for all individuals
-        fitness_scores = [evaluate_fitness(ind, matches_per_eval) for ind in population]
+    # Worker pool for parallel evaluations
+    pool = Pool(processes=workers)
 
-        gen_best_idx = int(np.argmax(fitness_scores))
-        gen_best_fitness = fitness_scores[gen_best_idx]
-        gen_avg_fitness = float(np.mean(fitness_scores))
+    try:
+        for gen in range(generations):
+            gen_start = time.time()
+            
+            # Prepare parallel eval arguments
+            eval_champion = best_overall_genome if best_overall_genome else seed_genome
+            eval_args = [(ind, matches_per_eval, eval_champion) for ind in population]
+            
+            fitness_scores = pool.map(_eval_individual_worker, eval_args)
 
-        if gen_best_fitness > best_overall_fitness:
-            best_overall_fitness = gen_best_fitness
-            best_overall_genome = copy.deepcopy(population[gen_best_idx])
+            gen_best_idx = int(np.argmax(fitness_scores))
+            gen_best_fitness = fitness_scores[gen_best_idx]
+            gen_avg_fitness = float(np.mean(fitness_scores))
 
-        gen_time = time.time() - gen_start
-        print(f"Gen {gen + 1:02d}/{generations:02d} - Best: {gen_best_fitness:+.2f} pts | Avg: {gen_avg_fitness:+.2f} pts | Time: {gen_time:.1f}s")
+            if gen_best_fitness > best_overall_fitness:
+                best_overall_fitness = gen_best_fitness
+                best_overall_genome = copy.deepcopy(population[gen_best_idx])
+                # Checkpoint save on new record
+                with open(export_path, 'wb') as f:
+                    pickle.dump(best_overall_genome, f)
 
-        # Selection: Tournament selection (k=3)
-        selected_parents = []
-        for _ in range(population_size):
-            k_indices = random.sample(range(population_size), 3)
-            best_k = max(k_indices, key=lambda idx: fitness_scores[idx])
-            selected_parents.append(population[best_k])
+            gen_time = time.time() - gen_start
+            if (gen + 1) % 5 == 0 or gen == 0 or gen == generations - 1:
+                print(f"Gen {gen + 1:03d}/{generations:03d} - Best: {gen_best_fitness:+.2f} pts | Avg: {gen_avg_fitness:+.2f} pts | All-Time: {best_overall_fitness:+.2f} pts ({gen_time:.2f}s)")
 
-        # Reproduction: Elitism (keep top 2) + Crossover + Mutation
-        sorted_indices = np.argsort(fitness_scores)[::-1]
-        next_gen = [copy.deepcopy(population[sorted_indices[0]]), copy.deepcopy(population[sorted_indices[1]])]
+            # Selection: Tournament selection (k=3)
+            selected_parents = []
+            for _ in range(population_size):
+                k_indices = random.sample(range(population_size), 3)
+                best_k = max(k_indices, key=lambda idx: fitness_scores[idx])
+                selected_parents.append(population[best_k])
 
-        while len(next_gen) < population_size:
-            p1, p2 = random.sample(selected_parents, 2)
-            child = crossover(p1, p2)
-            child = mutate(child)
-            next_gen.append(child)
+            # Reproduction: Elitism (keep top 2 + best overall) + Crossover + Mutation
+            sorted_indices = np.argsort(fitness_scores)[::-1]
+            next_gen = [copy.deepcopy(population[sorted_indices[0]]), copy.deepcopy(population[sorted_indices[1]])]
+            if best_overall_genome:
+                next_gen.append(copy.deepcopy(best_overall_genome))
 
-        population = next_gen
+            while len(next_gen) < population_size:
+                p1, p2 = random.sample(selected_parents, 2)
+                child = crossover(p1, p2)
+                child = mutate(child)
+                next_gen.append(child)
+
+            population = next_gen
+    finally:
+        pool.close()
+        pool.join()
 
     total_time = time.time() - start_time
-    print(f"\nGA Optimization Finished in {total_time:.1f}s! Best Fitness: {best_overall_fitness:+.2f} pts")
+    print(f"\nGA Optimization Finished in {total_time:.1f}s! All-Time Best Fitness: {best_overall_fitness:+.2f} pts")
     print(f"Best Evolved Parameters:")
     for k, v in best_overall_genome.items():
         print(f"  {k}: {v:.4f}")
 
+    with open(export_path, 'wb') as f:
+        pickle.dump(best_overall_genome, f)
+    print(f"Saved latest champion weights to: {export_path}")
+
     return best_overall_genome
 
 if __name__ == '__main__':
-    best = run_genetic_algorithm(population_size=20, generations=10, matches_per_eval=10)
-    out_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ga_weights.pkl')
-    with open(out_path, 'wb') as f:
-        pickle.dump(best, f)
-    print(f"Exported evolved weights to {out_path}")
+    run_genetic_algorithm(population_size=28, generations=150, matches_per_eval=16, workers=12)
 
