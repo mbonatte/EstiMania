@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: estimania-app
+    restart: unless-stopped
+    # Optional: Keep port mapped if you also want direct IP:5000 access, or remove if routed strictly via NPM
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SECRET_KEY=${SECRET_KEY:-estimania-secret-key-change-me}
+      - PORT=5000
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - estimania-net
+      - proxy
+
+  redis:
+    image: redis:7-alpine
+    container_name: estimania-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - estimania-net
+
+volumes:
+  redis_data:
+
+networks:
+  estimania-net:
+    driver: bridge
+  proxy:
+    external: true

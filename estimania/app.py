@@ -18,7 +18,7 @@ from estimania.network_player import NetworkPlayer
 from estimania.online_bot_player import OnlineBotPlayer
 
 # === Config ===
-REDIS_URL = "rediss://default:AWJsAAIncDEwNmJiYzQyOTIxMGM0ZWQxODFjNjE0ZjJhMTY4YmQyY3AxMjUxOTY@normal-kiwi-25196.upstash.io:6379"
+REDIS_URL = os.environ.get("REDIS_URL", "rediss://default:AWJsAAIncDEwNmJiYzQyOTIxMGM0ZWQxODFjNjE0ZjJhMTY4YmQyY3AxMjUxOTY@normal-kiwi-25196.upstash.io:6379")
 REDIS_EXPIRE_SECONDS = 3600  # 1 hour
 
 # === App setup ===
@@ -27,12 +27,18 @@ app.config['SECRET_KEY'] = 'secret'
 
 socketio = SocketIO(app)
 
-redis_client = redis.Redis.from_url(
-    REDIS_URL,
-    decode_responses=True,
-    socket_connect_timeout=5,
-    socket_keepalive=True,
-)
+try:
+    redis_client = redis.Redis.from_url(
+        REDIS_URL,
+        decode_responses=True,
+        socket_connect_timeout=2,
+        socket_keepalive=True,
+    )
+    redis_client.ping()
+except Exception:
+    import fakeredis
+    print("Warning: Could not connect to remote Redis. Using in-memory fakeredis fallback.")
+    redis_client = fakeredis.FakeRedis(decode_responses=True)
 
 register_test_routes(app, socketio)
 
@@ -224,5 +230,7 @@ def handle_disconnect():
         redis_client.delete(f'room:{room_id}:members')
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug)
 

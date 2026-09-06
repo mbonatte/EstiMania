@@ -51,11 +51,17 @@ class GameEngine:
         winner, highest = self.rules.evaluate_trick_winner(self.cards_in_table, self.current_player_to_drop)
         
         self.players[winner].score_in_turn += 1
+        for p in self.players:
+            if hasattr(p, "on_trick_completed"):
+                p.on_trick_completed(self.cards_in_table, winner, highest)
         self.events.trick_winner(highest)
         self.events.score(self.players)
         self.current_player_to_drop = winner
 
     def _init_round(self, n_cards: int):
+        for p in self.players:
+            if hasattr(p, "on_round_started"):
+                p.on_round_started(n_cards)
         self.rules.deal(self.players, n_cards)
         self._collect_bets()
         self.current_player_to_drop = self.current_bettor
@@ -72,6 +78,8 @@ class GameEngine:
         for viewer in self.players:
             table = [str(hidden[other]) for other in self.players if other is not viewer]
             other_players = [other for other in self.players if other is not viewer]
+            if hasattr(viewer, "see_opponents_cards"):
+                viewer.see_opponents_cards(table, other_players)
             if hasattr(self.events, "private_table"):
                 self.events.private_table(viewer, table, other_players)
 
