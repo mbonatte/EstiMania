@@ -24,11 +24,11 @@
 			</a>
 
 			<div class="suit-hierarchy-badge" title="Suit Hierarchy: Diamonds/Gold beats Spades, Hearts, and Clubs!">
-				<span>Hierarchy:</span>
-				<span class="diamonds">♦ Gold</span> &gt;
-				<span class="spades">♠ Sword</span> &gt;
-				<span class="hearts">♥ Cups</span> &gt;
-				<span class="clubs">♣ Clubs</span>
+				<span data-i18n="nav.hierarchy">Hierarchy:</span>
+				<span class="diamonds" data-i18n="nav.diamonds">♦ Gold</span> &gt;
+				<span class="spades" data-i18n="nav.spades">♠ Sword</span> &gt;
+				<span class="hearts" data-i18n="nav.hearts">♥ Cups</span> &gt;
+				<span class="clubs" data-i18n="nav.clubs">♣ Clubs</span>
 			</div>
 
 			<button class="menu-toggle" aria-label="Toggle navigation" onclick="toggleMobileMenu()">
@@ -38,23 +38,33 @@
 			</button>
 
 			<ul id="menu" class="menu">
-				<li><a href="/create_room">Create Room</a></li>
-				<li><a href="/browse_rooms">Browse Rooms</a></li>
-				<li><a href="/about">About & Rules</a></li>
+				<li><a href="/create_room" data-i18n="nav.createRoom">Create Room</a></li>
+				<li><a href="/browse_rooms" data-i18n="nav.browseRooms">Browse Rooms</a></li>
+				<li><a href="/about" data-i18n="nav.aboutRules">About & Rules</a></li>
+				<li>
+					<button id="globalLangToggleBtn" class="btn btn-lang-toggle" onclick="toggleLanguage()" title="Switch Language / Mudar Idioma">
+						<span>🌐</span> <span id="langToggleLabel">🇺🇸 EN</span>
+					</button>
+				</li>
 			</ul>
 		</div>
 	</nav>
 	
 	<div id="mobile-menu" class="mobile-menu">
-		<a href="/create_room">Create Room</a>
-		<a href="/browse_rooms">Browse Rooms</a>
-		<a href="/about">About & Rules</a>
+		<a href="/create_room" data-i18n="nav.createRoom">Create Room</a>
+		<a href="/browse_rooms" data-i18n="nav.browseRooms">Browse Rooms</a>
+		<a href="/about" data-i18n="nav.aboutRules">About & Rules</a>
+		<div style="padding: 0.5rem 1rem;">
+			<button id="mobileLangToggleBtn" class="btn btn-lang-toggle" onclick="toggleLanguage()" style="width: 100%; justify-content: center;">
+				<span>🌐</span> <span id="mobileLangToggleLabel">🇺🇸 EN</span>
+			</button>
+		</div>
 		<div class="mobile-suit-hierarchy">
-			<span>Hierarchy:</span>
-			<span class="diamonds">♦ Gold</span> &gt;
-			<span class="spades">♠ Sword</span> &gt;
-			<span class="hearts">♥ Cups</span> &gt;
-			<span class="clubs">♣ Clubs</span>
+			<span data-i18n="nav.hierarchy">Hierarchy:</span>
+			<span class="diamonds" data-i18n="nav.diamonds">♦ Gold</span> &gt;
+			<span class="spades" data-i18n="nav.spades">♠ Sword</span> &gt;
+			<span class="hearts" data-i18n="nav.hearts">♥ Cups</span> &gt;
+			<span class="clubs" data-i18n="nav.clubs">♣ Clubs</span>
 		</div>
 	</div>
 
@@ -62,6 +72,29 @@
 		{% block content %} {% endblock %}
 	</main>
 
+	<script type="module">
+		import i18n from "{{ url_for('static', filename='i18n.js') }}";
+		window.i18n = i18n;
+		window.toggleLanguage = function() {
+			const lang = i18n.toggleLanguage();
+			updateLangLabels(lang);
+		};
+
+		function updateLangLabels(lang) {
+			const label = lang === 'pt-BR' ? '🇧🇷 PT' : '🇺🇸 EN';
+			const desktop = document.getElementById('langToggleLabel');
+			const mobile = document.getElementById('mobileLangToggleLabel');
+			const room = document.getElementById('roomLangToggleLabel');
+			if (desktop) desktop.textContent = label;
+			if (mobile) mobile.textContent = label;
+			if (room) room.textContent = label;
+		}
+
+		document.addEventListener('DOMContentLoaded', () => {
+			i18n.applyTranslations();
+			updateLangLabels(i18n.getLanguage());
+		});
+	</script>
 	<script>
 		function toggleMobileMenu() {
 			var mobile_menu = document.getElementById("mobile-menu");

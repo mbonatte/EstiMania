@@ -15,21 +15,24 @@
         </div>
     </div>
     <div class="room-topbar-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+        <button id="roomLangToggleBtn" class="btn btn-lang-toggle" onclick="toggleLanguage()" title="Switch Language / Mudar Idioma">
+            <span>🌐</span> <span id="roomLangToggleLabel">🇺🇸 EN</span>
+        </button>
         <button id="coachModeToggleBtn" class="btn btn-coach-toggle active" title="Toggle Coach Mode for tips and probabilities">
             <span class="coach-icon">🎓</span> <span id="coachModeLabel">Coach: ON</span>
         </button>
         <button id="viewOverallPointsBtnTop" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 0.85rem;">
-            <span>🏆</span> Standings
+            <span>🏆</span> <span data-i18n="room.standings">Standings</span>
         </button>
         <button id="startGameButton" class="btn btn-emerald">
-            <span>♠</span> Start Match
+            <span>♠</span> <span data-i18n="room.startMatch">Start Match</span>
         </button>
     </div>
 </div>
 
 <div id="coachTipBanner" class="coach-tip-banner" style="display: none;">
     <div class="coach-tip-content">
-        <span class="coach-tip-badge">🎓 Coach Tip</span>
+        <span class="coach-tip-badge" data-i18n="turn.coachTipBadge">🎓 Coach Tip</span>
         <span class="coach-tip-text" id="coachTipText"></span>
     </div>
 </div>
@@ -37,7 +40,7 @@
 <div id="container">
     <div id="tableArea">
         <div class="table-empty-hint">
-            <span>Played cards will appear here</span>
+            <span data-i18n="room.tableEmpty">Played cards will appear here</span>
         </div>
     </div>
 
@@ -46,17 +49,17 @@
     <button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
     <div id="scoreAreaWrapper" class="toggle-wrapper">
         <div class="score-header-row">
-            <div id="roundArea"><span>🃏</span> Waiting to deal...</div>
+            <div id="roundArea"><span>🃏</span> <span data-i18n="room.waitingDeal">Waiting to deal...</span></div>
             <button id="viewOverallPointsBtn" class="btn-points-toggle" title="View overall match points">
-                <span>🏆</span> Points
+                <span>🏆</span> <span data-i18n="room.points">Points</span>
             </button>
         </div>
         <table id="scoreArea" class="score-table">
             <thead>
                 <tr>
-                    <th>Player</th>
-                    <th>Bid</th>
-                    <th>Tricks</th>
+                    <th data-i18n="score.player">Player</th>
+                    <th data-i18n="score.bid">Bid</th>
+                    <th data-i18n="score.tricks">Tricks</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -65,11 +68,11 @@
     
     <button id="messageToggleButton" class="toggle-button" data-content="Messages">Show Chat</button>
     <div id="messageWrapper" class="toggle-wrapper">
-        <div class="chat-header">Table Chat</div>
+        <div class="chat-header" data-i18n="room.tableChat">Table Chat</div>
         <div id="messageArea"></div>
         <form id="chatForm">
-            <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
-            <button type="submit" class="btn btn-secondary">Send</button>
+            <input type="text" id="message" placeholder="Type a message..." data-i18n-placeholder="room.chatPlaceholder" autocomplete="off">
+            <button type="submit" class="btn btn-secondary" data-i18n="room.send">Send</button>
         </form>
     </div>
 </div>

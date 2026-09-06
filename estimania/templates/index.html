@@ -6,19 +6,19 @@
 		<img src="{{ url_for('static', filename='logo.png') }}" alt="EstiMania Logo" style="height: 190px; width: auto; filter: drop-shadow(0 12px 24px rgba(99, 102, 241, 0.35));" />
 	</div>
 
-	<p style="font-size: 1.25rem; color: var(--text-main); max-width: 720px; margin: 0 auto 2.5rem; text-align: center; line-height: 1.7; font-weight: 500;">
+	<p data-i18n="home.tagline" style="font-size: 1.25rem; color: var(--text-main); max-width: 720px; margin: 0 auto 2.5rem; text-align: center; line-height: 1.7; font-weight: 500;">
 		EstiMania: A thrilling card game of estimation. Guess rounds, calculate bets, and strategize your way to victory. Test your estimation skills and embrace the excitement of EstiMania. Ready to play? Let the games begin!
 	</p>
 
 	<div style="display: flex; gap: 1.25rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem;">
 		<a href="/create_room" class="btn btn-emerald" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
-			<span>🎮</span> Create a Room
+			<span>🎮</span> <span data-i18n="home.btnCreate">Create a Room</span>
 		</a>
 		<a href="/join_room" class="btn" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
-			<span>🚪</span> Join a Room
+			<span>🚪</span> <span data-i18n="home.btnJoin">Join a Room</span>
 		</a>
 		<a href="/browse_rooms" class="btn btn-secondary" style="font-size: 1.05rem; padding: 0.85rem 1.75rem;">
-			<span>🔍</span> Browse Rooms
+			<span>🔍</span> <span data-i18n="home.btnBrowse">Browse Rooms</span>
 		</a>
 	</div>
 </div>

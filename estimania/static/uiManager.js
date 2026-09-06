@@ -1,4 +1,5 @@
 import Card from './Card.js';
+import i18n from './i18n.js';
 
 export default class UIManager {
     constructor() {
@@ -22,6 +23,11 @@ export default class UIManager {
         this.createBetModal();
         this.createSetupModal();
         this.createFloatingText();
+
+        window.addEventListener('estimaniaLanguageChanged', () => {
+            this.onLanguageChanged();
+        });
+
         console.log("UI Manager initialized.");
     }
 
@@ -29,6 +35,8 @@ export default class UIManager {
         this.socketHandler = socketHandler;
         this.setupEventListeners(socketHandler);
         this.updateCoachToggleBtnUI();
+        this.updateRoomLangToggleUI();
+        i18n.applyTranslations();
     }
 
     setupEventListeners(socketHandler) {
@@ -98,11 +106,11 @@ export default class UIManager {
         setupModal.className = 'modal';
         setupModal.innerHTML = `
             <div class="modal-content">
-                <h2>Game Settings</h2>
-                <p class="modal-desc">Configure opponents and round length before dealing.</p>
+                <h2 data-i18n="setup.title">Game Settings</h2>
+                <p class="modal-desc" data-i18n="setup.desc">Configure opponents and round length before dealing.</p>
                 
                 <div class="modal-form-row">
-                    <label>AI Bot Opponents</label>
+                    <label data-i18n="setup.botsLabel">AI Bot Opponents</label>
                     <div class="bet-chips-container" id="botsChipsContainer">
                         <div class="bet-chip" data-value="0">0</div>
                         <div class="bet-chip" data-value="1">1</div>
@@ -112,7 +120,7 @@ export default class UIManager {
                 </div>
 
                 <div class="modal-form-row">
-                    <label>Max Turns / Rounds</label>
+                    <label data-i18n="setup.turnsLabel">Max Turns / Rounds</label>
                     <div class="bet-chips-container" id="turnsChipsContainer">
                         <div class="bet-chip" data-value="1">1</div>
                         <div class="bet-chip" data-value="2">2</div>
@@ -123,8 +131,8 @@ export default class UIManager {
                 </div>
 
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="cancelSetupBtn">Cancel</button>
-                    <button type="button" class="btn btn-emerald" id="confirmSetupBtn">Start Match</button>
+                    <button type="button" class="btn btn-secondary" id="cancelSetupBtn" data-i18n="setup.btnCancel">Cancel</button>
+                    <button type="button" class="btn btn-emerald" id="confirmSetupBtn" data-i18n="setup.btnConfirm">Start Match</button>
                 </div>
             </div>
         `;
@@ -151,6 +159,7 @@ export default class UIManager {
         const confirmBtn = document.getElementById('confirmSetupBtn');
         const cancelBtn = document.getElementById('cancelSetupBtn');
 
+        i18n.applyTranslations(setupModal);
         setupModal.style.display = 'flex';
 
         const onConfirm = () => {
@@ -188,17 +197,17 @@ export default class UIManager {
         betModal.innerHTML = `
             <div class="modal-content">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h2 style="margin: 0; font-size: 1.4rem;">Place Your Bet</h2>
+                    <h2 style="margin: 0; font-size: 1.4rem;" data-i18n="bet.title">Place Your Bet</h2>
                     <span id="betCardsInHandBadge" class="room-badge" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">Cards in Hand: 0</span>
                 </div>
-                <p class="modal-desc" style="margin-bottom: 0.75rem; font-size: 0.88rem;">
+                <p class="modal-desc" style="margin-bottom: 0.75rem; font-size: 0.88rem;" data-i18n="bet.desc">
                     Examine your hand below and current bids in the scoreboard.
                 </p>
 
                 <!-- Coach Mode Win Probabilities & Rationale Banner -->
                 <div id="coachBetTipContainer" class="coach-bet-tip-box" style="display: none;">
                     <div class="coach-bet-tip-header">
-                        <span class="coach-bet-tip-title"><span>🎓</span> Coach Advice</span>
+                        <span class="coach-bet-tip-title"><span>🎓</span> <span data-i18n="bet.coachTitle">Coach Advice</span></span>
                         <span id="coachBetTipProbBadge" class="coach-prob-badge"></span>
                     </div>
                     <div id="coachBetTipText" class="coach-bet-tip-body"></div>
@@ -212,12 +221,12 @@ export default class UIManager {
                 </div>
 
                 <div class="modal-form-row" style="margin-bottom: 1rem;">
-                    <label for="betInput">Custom Bet Amount</label>
+                    <label for="betInput" data-i18n="bet.customLabel">Custom Bet Amount</label>
                     <input type="number" min="0" max="13" id="betInput" value="0">
                 </div>
 
                 <div class="modal-actions" style="margin-top: 1rem;">
-                    <button id="submitBetButton" class="btn btn-emerald" style="width: 100%;">Confirm Bid</button>
+                    <button id="submitBetButton" class="btn btn-emerald" style="width: 100%;" data-i18n="bet.btnConfirm">Confirm Bid</button>
                 </div>
             </div>
         `;
@@ -233,17 +242,19 @@ export default class UIManager {
             });
         });
     }
-    
+
     showBetInputForm(callback) {
         const betModal = document.getElementById('betModal');
         const betInput = document.getElementById('betInput');
         const submitBetButton = document.getElementById('submitBetButton');
         const badge = document.getElementById('betCardsInHandBadge');
 
+        i18n.applyTranslations(betModal);
+
         // Dynamically adjust quick chips based on cards in hand
         const handCount = this.handArea ? this.handArea.querySelectorAll('.card-wrapper').length : 0;
         if (badge) {
-            badge.textContent = `${handCount} Card${handCount === 1 ? '' : 's'}`;
+            badge.textContent = i18n.t('room.cardsInHand', { count: handCount, s: (handCount === 1 ? '' : 's') });
         }
 
         const chipsContainer = document.getElementById('betQuickChips');
@@ -263,7 +274,7 @@ export default class UIManager {
                     }
                     if (this.latestBetAdvice.recommended_bet === i) {
                         chip.classList.add('chip-recommended');
-                        chipHtml += `<span class="chip-rec-badge">★ Best</span>`;
+                        chipHtml += `<span class="chip-rec-badge">${i18n.t('bet.bestChip')}</span>`;
                     }
                 }
                 chip.innerHTML = chipHtml;
@@ -326,11 +337,16 @@ export default class UIManager {
 
         if (this.coachModeEnabled && this.latestBetAdvice) {
             coachBox.style.display = 'block';
-            if (coachText) coachText.textContent = this.latestBetAdvice.tip || "Analyze your cards and select your contract.";
+            if (coachText) {
+                const tip = (i18n.getLanguage() === 'pt-BR' && this.latestBetAdvice.tip_pt)
+                    ? this.latestBetAdvice.tip_pt
+                    : (this.latestBetAdvice.tip || "Analyze your cards and select your contract.");
+                coachText.textContent = tip;
+            }
             if (coachBadge && this.latestBetAdvice.recommended_bet !== undefined) {
                 const rec = this.latestBetAdvice.recommended_bet;
                 const prob = this.latestBetAdvice.win_probabilities ? this.latestBetAdvice.win_probabilities[rec] : null;
-                coachBadge.textContent = `★ Recommended: ${rec}` + (prob !== null && prob !== undefined ? ` (${prob}%)` : '');
+                coachBadge.textContent = i18n.t('bet.recommendedBadge', { bet: rec, prob: (prob !== null && prob !== undefined ? prob : '--') });
             }
         } else {
             coachBox.style.display = 'none';
@@ -366,9 +382,9 @@ export default class UIManager {
                         if (!recBadge) {
                             recBadge = document.createElement('span');
                             recBadge.className = 'chip-rec-badge';
-                            recBadge.textContent = '★ Best';
                             chip.appendChild(recBadge);
                         }
+                        recBadge.textContent = i18n.t('bet.bestChip');
                     } else {
                         chip.classList.remove('chip-recommended');
                         if (recBadge) recBadge.remove();
@@ -401,7 +417,7 @@ export default class UIManager {
        Card Playing Phase & Coach Recommendations
        ======================================================================== */
     handleCardPick(callback) {
-        this.bringAttention("Your Turn! Pick a card to play");
+        this.bringAttention(i18n.t('turn.yourTurn'));
         this.activeCardPickCallback = callback;
 
         const handCards = this.handArea.querySelectorAll('.card');
@@ -451,14 +467,17 @@ export default class UIManager {
                 wrapper.classList.add('card-wrapper-recommended');
                 const badge = document.createElement('span');
                 badge.className = 'coach-card-badge';
-                badge.innerHTML = `★ Coach Pick`;
+                badge.innerHTML = i18n.t('turn.coachPick');
                 wrapper.appendChild(badge);
             }
         }
 
         // Show Coach Tip Banner
-        if (this.latestCardAdvice.tip) {
-            this.showCoachTipBanner(this.latestCardAdvice.tip, this.latestCardAdvice.action_type);
+        const tip = (i18n.getLanguage() === 'pt-BR' && this.latestCardAdvice.tip_pt)
+            ? this.latestCardAdvice.tip_pt
+            : this.latestCardAdvice.tip;
+        if (tip) {
+            this.showCoachTipBanner(tip, this.latestCardAdvice.action_type);
         }
     }
 
@@ -504,10 +523,60 @@ export default class UIManager {
         if (!btn) return;
         if (this.coachModeEnabled) {
             btn.classList.add('active');
-            if (label) label.textContent = 'Coach: ON';
+            if (label) label.textContent = i18n.t('room.coachOn');
         } else {
             btn.classList.remove('active');
-            if (label) label.textContent = 'Coach: OFF';
+            if (label) label.textContent = i18n.t('room.coachOff');
+        }
+    }
+
+    updateRoomLangToggleUI() {
+        const roomLangLabel = document.getElementById('roomLangToggleLabel');
+        if (roomLangLabel) {
+            roomLangLabel.textContent = i18n.getLanguage() === 'pt-BR' ? '🇧🇷 PT' : '🇺🇸 EN';
+        }
+    }
+
+    onLanguageChanged() {
+        this.updateRoomLangToggleUI();
+        this.updateCoachToggleBtnUI();
+        i18n.applyTranslations();
+
+        // Update setup modal if open
+        const setupModal = document.getElementById('setupModal');
+        if (setupModal && setupModal.style.display === 'flex') {
+            i18n.applyTranslations(setupModal);
+        }
+
+        // Update bet modal if open
+        const betModal = document.getElementById('betModal');
+        if (betModal && betModal.style.display === 'flex') {
+            i18n.applyTranslations(betModal);
+            const handCount = this.handArea ? this.handArea.querySelectorAll('.card-wrapper').length : 0;
+            const badge = document.getElementById('betCardsInHandBadge');
+            if (badge) {
+                badge.textContent = i18n.t('room.cardsInHand', { count: handCount, s: (handCount === 1 ? '' : 's') });
+            }
+            this.updateBetModalCoachUI();
+        }
+
+        // Update coach card advice if currently picking card
+        if (this.activeCardPickCallback) {
+            this.bringAttention(i18n.t('turn.yourTurn'));
+            this.applyCoachCardAdviceUI();
+        }
+
+        // Update standings modal if open
+        const overallModal = document.getElementById('overallPointsModal');
+        if (overallModal && overallModal.style.display !== 'none') {
+            i18n.applyTranslations(overallModal);
+            this.updateOverallPointsModalContent();
+        }
+
+        // Update table empty state if present
+        const emptyHint = this.tableArea?.querySelector('.table-empty-hint span');
+        if (emptyHint) {
+            emptyHint.textContent = i18n.t('room.tableEmpty');
         }
     }
 
@@ -650,7 +719,8 @@ export default class UIManager {
         headerDiv.classList.add("popup-header");
 
         const title = document.createElement("h2");
-        title.innerHTML = `🏆 Final Standings`;
+        title.setAttribute("data-i18n", "final.title");
+        title.innerHTML = `🏆 ${i18n.t('final.title')}`;
 
         const closeButton = document.createElement("button");
         closeButton.innerHTML = "&times;";
@@ -672,8 +742,8 @@ export default class UIManager {
         
         const headerRow = document.createElement("tr");
         headerRow.innerHTML = `
-            <th>Rank & Player</th>
-            <th style="text-align: right;">Final Score</th>
+            <th data-i18n="final.rankPlayer">${i18n.t('final.rankPlayer')}</th>
+            <th style="text-align: right;" data-i18n="final.score">${i18n.t('final.score')}</th>
         `;
         scoreTable.appendChild(headerRow);
         
@@ -705,7 +775,8 @@ export default class UIManager {
         
         const restartBtn = document.createElement("button");
         restartBtn.className = "btn btn-emerald";
-        restartBtn.textContent = "Play Again";
+        restartBtn.setAttribute("data-i18n", "final.playAgain");
+        restartBtn.textContent = i18n.t('final.playAgain');
         restartBtn.addEventListener("click", () => {
             scorePopup.remove();
             window.location.reload();
@@ -780,6 +851,13 @@ export default class UIManager {
         this._lastErrorMsg = msg;
         this._lastErrorTime = now;
 
+        let displayMsg = msg;
+        if (msg === 'Card not valid!') {
+            displayMsg = i18n.t('error.invalidCard');
+        } else if (msg === 'Timeout occurred while waiting for card selection') {
+            displayMsg = i18n.t('error.timeout');
+        }
+
         let floatingText = document.getElementById('floatingText');
         if (!floatingText) {
             this.createFloatingText();
@@ -788,7 +866,7 @@ export default class UIManager {
 
         if (floatingText) {
             floatingText.classList.add('toast-error');
-            floatingText.innerHTML = `<span>⚠️</span> ${msg}`;
+            floatingText.innerHTML = `<span>⚠️</span> ${displayMsg}`;
             floatingText.style.display = 'block';
             floatingText.style.animation = 'none';
             void floatingText.offsetWidth; // Force CSS reflow
@@ -817,27 +895,27 @@ export default class UIManager {
             modal.innerHTML = `
                 <div class="popup-header-content" style="max-width: 520px;">
                     <div class="popup-header">
-                        <h2><span>🏆</span> Overall Standings</h2>
+                        <h2><span>🏆</span> <span data-i18n="standings.title">${i18n.t('standings.title')}</span></h2>
                         <button id="closeOverallPointsBtn" class="close-button" aria-label="Close">&times;</button>
                     </div>
-                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
-                        Cumulative points across all completed rounds.
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="standings.desc">
+                        ${i18n.t('standings.desc')}
                     </p>
                     <div class="popup-content">
                         <table class="final-score-table">
                             <thead>
                                 <tr>
-                                    <th>Rank & Player</th>
-                                    <th style="text-align: center;">Round Status</th>
-                                    <th style="text-align: right;">Total Points</th>
+                                    <th data-i18n="standings.colRank">${i18n.t('standings.colRank')}</th>
+                                    <th style="text-align: center;" data-i18n="standings.colStatus">${i18n.t('standings.colStatus')}</th>
+                                    <th style="text-align: right;" data-i18n="standings.colPoints">${i18n.t('standings.colPoints')}</th>
                                 </tr>
                             </thead>
                             <tbody id="overallPointsTableBody"></tbody>
                         </table>
                     </div>
                     <div style="margin-top: 1.5rem;">
-                        <button id="dismissOverallPointsBtn" class="btn btn-secondary" style="width: 100%;">
-                            Back to Table
+                        <button id="dismissOverallPointsBtn" class="btn btn-secondary" style="width: 100%;" data-i18n="standings.btnBack">
+                            ${i18n.t('standings.btnBack')}
                         </button>
                     </div>
                 </div>
@@ -861,6 +939,7 @@ export default class UIManager {
             });
         }
 
+        i18n.applyTranslations(modal);
         modal.style.display = 'flex';
         modal.classList.add('show');
         this.updateOverallPointsModalContent();
@@ -877,7 +956,7 @@ export default class UIManager {
             const emptyRow = document.createElement('tr');
             emptyRow.innerHTML = `
                 <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
-                    Match is starting. Points will calculate after Round 1.
+                    ${i18n.t('standings.empty')}
                 </td>
             `;
             tbody.appendChild(emptyRow);
@@ -903,12 +982,12 @@ export default class UIManager {
 
             // Player cell
             const isMe = (myUsername && player.name === myUsername);
-            const meBadge = isMe ? `<span class="room-badge" style="margin-left: 0.5rem; font-size: 0.72rem; padding: 0.15rem 0.5rem; background: rgba(99, 102, 241, 0.2); border-color: var(--primary);">You</span>` : '';
+            const meBadge = isMe ? `<span class="room-badge" style="margin-left: 0.5rem; font-size: 0.72rem; padding: 0.15rem 0.5rem; background: rgba(99, 102, 241, 0.2); border-color: var(--primary);">${i18n.t('standings.you')}</span>` : '';
 
             // Round status cell
             let roundStatus = '-';
             if (player.bet !== undefined && player.bet !== null) {
-                roundStatus = `Bid: ${player.bet} &bull; Won: ${player.wins || 0}`;
+                roundStatus = i18n.t('standings.bidWon', { bet: player.bet, wins: player.wins || 0 });
             }
 
             // Score formatting

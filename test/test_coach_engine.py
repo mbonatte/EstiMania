@@ -60,6 +60,7 @@ class TestCoachEngine(unittest.TestCase):
         self.assertEqual(res['recommended_card'], '2 of Clubs')
         self.assertEqual(res['action_type'], 'duck')
         self.assertIn('Quota', res['tip'])
+        self.assertIn('Meta', res['tip_pt'])
 
     def test_get_card_recommendation_winning(self):
         # Must win: bet 1, won 0, 1 trick remaining
@@ -75,6 +76,14 @@ class TestCoachEngine(unittest.TestCase):
         self.assertEqual(res['recommended_card'], '1 of Diamonds')
         self.assertEqual(res['action_type'], 'win')
         self.assertIn('Must win', res['tip'])
+        self.assertIn('Precisa vencer', res['tip_pt'])
+
+    def test_bilingual_bet_advice(self):
+        hand = [Card('2', 'Clubs'), Card('3', 'Clubs')]
+        res = self.coach.get_bet_recommendations(hand, n_adversaries=3)
+        self.assertIn('tip', res)
+        self.assertIn('tip_pt', res)
+        self.assertIn('Apostar', res['tip_pt'])
 
 if __name__ == '__main__':
     unittest.main()

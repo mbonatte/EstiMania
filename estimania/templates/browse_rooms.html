@@ -4,11 +4,11 @@
 <div style="max-width: 960px; margin: 0 auto; padding: 1rem 0;">
 	<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
 		<div>
-			<h1 style="font-size: 2rem; margin-bottom: 0.35rem;">Browse Tables</h1>
-			<p style="color: var(--text-muted); font-size: 0.95rem;">Join an existing table or host your own game session.</p>
+			<h1 data-i18n="browse.title" style="font-size: 2rem; margin-bottom: 0.35rem;">Browse Tables</h1>
+			<p data-i18n="browse.desc" style="color: var(--text-muted); font-size: 0.95rem;">Join an existing table or host your own game session.</p>
 		</div>
 		<a href="/create_room" class="btn btn-emerald">
-			<span>+</span> Create New Table
+			<span>+</span> <span data-i18n="browse.btnCreate">Create New Table</span>
 		</a>
 	</div>
 
@@ -16,9 +16,9 @@
 		<table id="roomsTable" style="width: 100%; border-collapse: separate; border-spacing: 0 8px;">
 			<thead>
 				<tr>
-					<th style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border-subtle);">Table Name</th>
-					<th style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: center; border-bottom: 1px solid var(--border-subtle);">Players</th>
-					<th style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: right; border-bottom: 1px solid var(--border-subtle);">Action</th>
+					<th data-i18n="browse.colName" style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: left; border-bottom: 1px solid var(--border-subtle);">Table Name</th>
+					<th data-i18n="browse.colPlayers" style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: center; border-bottom: 1px solid var(--border-subtle);">Players</th>
+					<th data-i18n="browse.colAction" style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 0.75rem 1.25rem; text-align: right; border-bottom: 1px solid var(--border-subtle);">Action</th>
 				</tr>
 			</thead>
 			<tbody id="roomsTableBody"></tbody>
@@ -26,9 +26,9 @@
 
 		<div id="noRoomsPlaceholder" style="display: none; text-align: center; padding: 3rem 1rem;">
 			<div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🃏</div>
-			<h3 style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #fff;">No Active Tables Found</h3>
-			<p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">There are currently no open tables waiting for players.</p>
-			<a href="/create_room" class="btn btn-emerald">Host a New Table</a>
+			<h3 data-i18n="browse.noRoomsTitle" style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #fff;">No Active Tables Found</h3>
+			<p data-i18n="browse.noRoomsDesc" style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">There are currently no open tables waiting for players.</p>
+			<a href="/create_room" class="btn btn-emerald" data-i18n="browse.btnHost">Host a New Table</a>
 		</div>
 	</div>
 </div>

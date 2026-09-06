@@ -79,6 +79,17 @@ class CoachEngine:
         n_adversaries = max(1, n_adversaries)
         current_bets = current_bets or ([-1] * (n_adversaries + 1))
 
+        # Helper card formatter
+        def fmt_card_pt(c: Card) -> str:
+            val_map = {'1': 'Ás', '13': 'Rei', '12': 'Dama', '11': 'Valete'}
+            suit_map = {'Diamonds': 'Ouros', 'Spades': 'Espadas', 'Hearts': 'Copas', 'Clubs': 'Paus'}
+            v = val_map.get(c.value, c.value)
+            s = suit_map.get(c.suit, c.suit)
+            return f"{v} de {s}"
+
+        def fmt_suit_pt(suit: str) -> str:
+            return {'Diamonds': 'Ouros', 'Spades': 'Espadas', 'Hearts': 'Copas', 'Clubs': 'Paus'}.get(suit, suit)
+
         # Case 1: Final Round (Blind Man's Bluff - hand is empty)
         if len(hand) == 0:
             opp_cards = final_round_opp_cards or []
@@ -91,17 +102,21 @@ class CoachEngine:
             recommended_bet = 1 if pct_win >= 50 else 0
 
             highest_opp = max(opp_cards, key=lambda c: int(c)) if opp_cards else None
-            opp_str = f"opponents' top card is {highest_opp}" if highest_opp else "opponents' visible cards"
+            opp_str_en = f"opponents' top card is {highest_opp}" if highest_opp else "opponents' visible cards"
+            opp_str_pt = f"a carta mais alta dos oponentes é {fmt_card_pt(highest_opp)}" if highest_opp else "as cartas visíveis dos oponentes"
 
             if recommended_bet == 1:
-                tip = f"Your unseen card has a strong {pct_win}% chance to beat {opp_str}! Bidding 1 is favored."
+                tip_en = f"Your unseen card has a strong {pct_win}% chance to beat {opp_str_en}! Bidding 1 is favored."
+                tip_pt = f"Sua carta oculta tem {pct_win}% de chance de vencer {opp_str_pt}! Apostar 1 é a melhor escolha."
             else:
-                tip = f"With {opp_str}, your win probability is {pct_win}%. Bidding 0 is safer."
+                tip_en = f"With {opp_str_en}, your win probability is {pct_win}%. Bidding 0 is safer."
+                tip_pt = f"Com {opp_str_pt}, sua chance de vitória é de {pct_win}%. Apostar 0 é mais seguro."
 
             return {
                 "recommended_bet": recommended_bet,
                 "win_probabilities": {"0": pct_zero, "1": pct_win},
-                "tip": tip,
+                "tip": tip_en,
+                "tip_pt": tip_pt,
                 "is_final_round": True,
             }
 
@@ -135,13 +150,11 @@ class CoachEngine:
 
         # Convert to integer percentages that sum to 100
         int_probs = [int(round(p * 100)) for p in raw_probs]
-        # Adjust rounding difference to ensure sum == 100
         diff = 100 - sum(int_probs)
         if diff != 0:
             best_idx = int(np.argmax(raw_probs))
             int_probs[best_idx] += diff
 
-        # Ensure minimum 1% display for visibility if prob > 0
         for i in range(len(int_probs)):
             if int_probs[i] == 0 and raw_probs[i] > 0.005:
                 int_probs[i] = 1
@@ -154,30 +167,40 @@ class CoachEngine:
         spade_cards = [c for c in hand if c.suit == 'Spades']
         high_trumps = [c for c in hand if c.suit in ['Diamonds', 'Spades'] and int(c.value) in [1, 13, 12]]
 
-        card_hints = []
+        card_hints_en = []
+        card_hints_pt = []
         if high_trumps:
-            trump_names = [f"{c.value} of {c.suit}" for c in high_trumps[:2]]
-            card_hints.append(f"top cards ({', '.join(trump_names)})")
+            trump_names_en = [f"{c.value} of {c.suit}" for c in high_trumps[:2]]
+            trump_names_pt = [fmt_card_pt(c) for c in high_trumps[:2]]
+            card_hints_en.append(f"top cards ({', '.join(trump_names_en)})")
+            card_hints_pt.append(f"cartas altas ({', '.join(trump_names_pt)})")
         elif diamond_cards:
-            card_hints.append(f"{len(diamond_cards)} Diamond trump(s)")
+            card_hints_en.append(f"{len(diamond_cards)} Diamond trump(s)")
+            card_hints_pt.append(f"{len(diamond_cards)} trunfo(s) de Ouros")
         elif spade_cards:
-            card_hints.append(f"{len(spade_cards)} Spade(s)")
+            card_hints_en.append(f"{len(spade_cards)} Spade(s)")
+            card_hints_pt.append(f"{len(spade_cards)} Espada(s)")
 
         if rec_bet == 0:
-            if card_hints:
-                tip = f"Bidding 0 is safest ({rec_prob}% confidence). Your hand lacks dominant winners."
+            if card_hints_en:
+                tip_en = f"Bidding 0 is safest ({rec_prob}% confidence). Your hand lacks dominant winners."
+                tip_pt = f"Apostar 0 é mais seguro ({rec_prob}% de confiança). Sua mão não possui cartas dominantes."
             else:
-                tip = f"Bidding 0 has the highest success chance ({rec_prob}%). Stay low and duck tricks."
+                tip_en = f"Bidding 0 has the highest success chance ({rec_prob}%). Stay low and duck tricks."
+                tip_pt = f"Apostar 0 tem a maior chance de sucesso ({rec_prob}%). Jogue baixo para não levar vazas."
         else:
-            hint_str = f" With your {' and '.join(card_hints)}," if card_hints else ""
-            tip = f"{hint_str} bidding {rec_bet} is your strongest contract with a {rec_prob}% success rate."
+            hint_str_en = f" With your {' and '.join(card_hints_en)}," if card_hints_en else ""
+            hint_str_pt = f" Com seus {' e '.join(card_hints_pt)}," if card_hints_pt else ""
+            tip_en = f"{hint_str_en} bidding {rec_bet} is your strongest contract with a {rec_prob}% success rate."
+            tip_pt = f"{hint_str_pt} apostar {rec_bet} é seu melhor palpite com {rec_prob}% de chance de sucesso."
 
         prob_dict = {str(b): int_probs[b] for b in range(n_cards + 1)}
 
         return {
             "recommended_bet": rec_bet,
             "win_probabilities": prob_dict,
-            "tip": tip.strip(),
+            "tip": tip_en.strip(),
+            "tip_pt": tip_pt.strip(),
             "is_final_round": False,
         }
 
@@ -199,6 +222,7 @@ class CoachEngine:
             return {
                 "recommended_card": str(hand[0]) if hand else None,
                 "tip": "No cards remaining.",
+                "tip_pt": "Nenhuma carta restante.",
                 "action_type": "none",
             }
 
@@ -220,61 +244,89 @@ class CoachEngine:
 
         card_str = str(rec_card)
         rank_name = rec_card.value
+        val_map_pt = {'1': 'Ás', '13': 'Rei', '12': 'Dama', '11': 'Valete'}
+        suit_map_pt = {'Diamonds': 'Ouros', 'Spades': 'Espadas', 'Hearts': 'Copas', 'Clubs': 'Paus'}
+
         if rank_name == '1':
-            rank_display = f"Ace of {rec_card.suit}"
+            rank_display_en = f"Ace of {rec_card.suit}"
+            rank_display_pt = f"Ás de {suit_map_pt.get(rec_card.suit, rec_card.suit)}"
         elif rank_name == '13':
-            rank_display = f"King of {rec_card.suit}"
+            rank_display_en = f"King of {rec_card.suit}"
+            rank_display_pt = f"Rei de {suit_map_pt.get(rec_card.suit, rec_card.suit)}"
         elif rank_name == '12':
-            rank_display = f"Queen of {rec_card.suit}"
+            rank_display_en = f"Queen of {rec_card.suit}"
+            rank_display_pt = f"Dama de {suit_map_pt.get(rec_card.suit, rec_card.suit)}"
         elif rank_name == '11':
-            rank_display = f"Jack of {rec_card.suit}"
+            rank_display_en = f"Jack of {rec_card.suit}"
+            rank_display_pt = f"Valete de {suit_map_pt.get(rec_card.suit, rec_card.suit)}"
         else:
-            rank_display = card_str
+            rank_display_en = card_str
+            rank_display_pt = f"{rank_name} de {suit_map_pt.get(rec_card.suit, rec_card.suit)}"
+
+        lead_suit_pt = suit_map_pt.get(lead_suit, lead_suit) if lead_suit else ""
+        current_highest_pt = ""
+        if current_highest:
+            ch_val = val_map_pt.get(current_highest.value, current_highest.value)
+            ch_suit = suit_map_pt.get(current_highest.suit, current_highest.suit)
+            current_highest_pt = f"{ch_val} de {ch_suit}"
 
         # Generate strategic rationale
         if needed_wins <= 0:
             action_type = "duck"
             if is_leading:
-                tip = f"Quota reached ({score_in_turn}/{bet}). Lead low {rank_display} to avoid taking the trick."
+                tip_en = f"Quota reached ({score_in_turn}/{bet}). Lead low {rank_display_en} to avoid taking the trick."
+                tip_pt = f"Meta atingida ({score_in_turn}/{bet}). Puxe {rank_display_pt} baixo para evitar levar a vaza."
             elif current_highest and int(rec_card) < int(current_highest):
-                tip = f"Quota secured ({score_in_turn}/{bet}). Play {rank_display} under the table to stay safe."
+                tip_en = f"Quota secured ({score_in_turn}/{bet}). Play {rank_display_en} under the table to stay safe."
+                tip_pt = f"Meta garantida ({score_in_turn}/{bet}). Jogue {rank_display_pt} abaixo da mesa para ficar seguro."
             else:
-                tip = f"Quota met! Play {rank_display} to minimize risk."
+                tip_en = f"Quota met! Play {rank_display_en} to minimize risk."
+                tip_pt = f"Meta cumprida! Jogue {rank_display_pt} para minimizar riscos."
 
         elif needed_wins >= remaining_tricks:
             action_type = "win"
             if is_leading:
-                tip = f"Must win remaining trick(s)! Lead your powerful {rank_display} to control the round."
+                tip_en = f"Must win remaining trick(s)! Lead your powerful {rank_display_en} to control the round."
+                tip_pt = f"Precisa vencer as vazas restantes! Puxe {rank_display_pt} para controlar a rodada."
             elif current_highest and int(rec_card) > int(current_highest):
-                tip = f"Must win this trick! Play {rank_display} to beat current highest ({current_highest})."
+                tip_en = f"Must win this trick! Play {rank_display_en} to beat current highest ({current_highest})."
+                tip_pt = f"Precisa vencer esta vaza! Jogue {rank_display_pt} para superar a carta mais alta ({current_highest_pt})."
             else:
-                tip = f"Cannot overtake the table. Save higher cards with {rank_display}."
+                tip_en = f"Cannot overtake the table. Save higher cards with {rank_display_en}."
+                tip_pt = f"Não é possível superar a mesa. Poupe cartas maiores com {rank_display_pt}."
 
         else:
             # Balanced play (0 < needed_wins < remaining_tricks)
             if is_leading:
                 action_type = "lead"
                 if rec_card.suit == 'Diamonds' and int(rec_card.value) in [1, 13, 12]:
-                    tip = f"Cash your boss {rank_display} to guarantee 1 of your {needed_wins} needed trick(s)."
+                    tip_en = f"Cash your boss {rank_display_en} to guarantee 1 of your {needed_wins} needed trick(s)."
+                    tip_pt = f"Jogue seu {rank_display_pt} para garantir 1 das suas {needed_wins} vaza(s) necessárias."
                 else:
-                    tip = f"Lead {rank_display} to test opponents' trumps without burning your high cards."
+                    tip_en = f"Lead {rank_display_en} to test opponents' trumps without burning your high cards."
+                    tip_pt = f"Puxe {rank_display_pt} para testar os trunfos adversários sem gastar cartas altas."
             else:
                 if lead_suit and rec_card.suit != lead_suit and int(rec_card) > int(current_highest):
                     action_type = "trump"
-                    tip = f"Void in {lead_suit}! Trump with {rank_display} to steal this trick for your contract."
+                    tip_en = f"Void in {lead_suit}! Trump with {rank_display_en} to steal this trick for your contract."
+                    tip_pt = f"Sem cartas de {lead_suit_pt}! Corte com {rank_display_pt} para levar esta vaza para sua aposta."
                 elif lead_suit and rec_card.suit != lead_suit:
                     action_type = "slough"
-                    tip = f"Void in {lead_suit}! Slough off {rank_display} safely."
+                    tip_en = f"Void in {lead_suit}! Slough off {rank_display_en} safely."
+                    tip_pt = f"Sem cartas de {lead_suit_pt}! Descarte {rank_display_pt} em segurança."
                 elif int(rec_card) > int(current_highest):
                     action_type = "win"
-                    tip = f"Play {rank_display} to capture this trick ({score_in_turn + 1}/{bet} needed)."
+                    tip_en = f"Play {rank_display_en} to capture this trick ({score_in_turn + 1}/{bet} needed)."
+                    tip_pt = f"Jogue {rank_display_pt} para levar esta vaza ({score_in_turn + 1}/{bet} necessária(s))."
                 else:
                     action_type = "duck"
-                    tip = f"Hold your trump power: duck with {rank_display} under {current_highest}."
+                    tip_en = f"Hold your trump power: duck with {rank_display_en} under {current_highest}."
+                    tip_pt = f"Poupe seus trunfos: passe com {rank_display_pt} abaixo de {current_highest_pt}."
 
         return {
             "recommended_card": card_str,
-            "tip": tip,
+            "tip": tip_en,
+            "tip_pt": tip_pt,
             "action_type": action_type,
             "needed_wins": needed_wins,
             "remaining_tricks": remaining_tricks,
