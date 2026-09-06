@@ -9,6 +9,9 @@ export default class UIManager {
         this.scoreArea = document.querySelector("#scoreArea tbody");
         this.activeCardPickCallback = null;
         this.cardClickHandler = null;
+        this.currentScores = [];
+        this._lastErrorMsg = null;
+        this._lastErrorTime = 0;
         
         this.createBetModal();
         this.createSetupModal();
@@ -41,6 +44,16 @@ export default class UIManager {
                     socketHandler.startGame(maxTurns, numBots);
                 });
             });
+        }
+
+        const pointsBtn = document.getElementById('viewOverallPointsBtn');
+        if (pointsBtn) {
+            pointsBtn.addEventListener('click', () => this.showOverallPointsModal());
+        }
+
+        const pointsBtnTop = document.getElementById('viewOverallPointsBtnTop');
+        if (pointsBtnTop) {
+            pointsBtnTop.addEventListener('click', () => this.showOverallPointsModal());
         }
     }
 
@@ -369,11 +382,13 @@ export default class UIManager {
        Scoreboard & Round Info
        ======================================================================== */
     updateScore(users) {
+        this.currentScores = users || [];
         this.scoreArea.innerHTML = "";
-        users.forEach(player => {
+        this.currentScores.forEach(player => {
             const row = this.createScoreRow(player);
             this.scoreArea.appendChild(row);
         });
+        this.updateOverallPointsModalContent();
     }
     
     updateRound(round) {
@@ -543,5 +558,172 @@ export default class UIManager {
             floatingText.style.display = 'none';
             floatingText.style.animation = 'none';
         }
+    }
+
+    showError(msg) {
+        const now = Date.now();
+        if (this._lastErrorMsg === msg && (now - this._lastErrorTime < 2000)) {
+            // Debounce identical duplicate error
+            return;
+        }
+        this._lastErrorMsg = msg;
+        this._lastErrorTime = now;
+
+        let floatingText = document.getElementById('floatingText');
+        if (!floatingText) {
+            this.createFloatingText();
+            floatingText = document.getElementById('floatingText');
+        }
+
+        if (floatingText) {
+            floatingText.classList.add('toast-error');
+            floatingText.innerHTML = `<span>⚠️</span> ${msg}`;
+            floatingText.style.display = 'block';
+            floatingText.style.animation = 'none';
+            void floatingText.offsetWidth; // Force CSS reflow
+            floatingText.style.animation = 'toastSlide 3.5s forwards';
+
+            if (this._toastErrorTimeout) {
+                clearTimeout(this._toastErrorTimeout);
+            }
+            this._toastErrorTimeout = setTimeout(() => {
+                floatingText.classList.remove('toast-error');
+            }, 3500);
+        } else {
+            console.warn("Game Error:", msg);
+        }
+    }
+
+    /* ========================================================================
+       Live Overall Points & Standings Modal
+       ======================================================================== */
+    showOverallPointsModal() {
+        let modal = document.getElementById('overallPointsModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'overallPointsModal';
+            modal.className = 'final-score-popup show';
+            modal.innerHTML = `
+                <div class="popup-header-content" style="max-width: 520px;">
+                    <div class="popup-header">
+                        <h2><span>🏆</span> Overall Standings</h2>
+                        <button id="closeOverallPointsBtn" class="close-button" aria-label="Close">&times;</button>
+                    </div>
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                        Cumulative points across all completed rounds.
+                    </p>
+                    <div class="popup-content">
+                        <table class="final-score-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank & Player</th>
+                                    <th style="text-align: center;">Round Status</th>
+                                    <th style="text-align: right;">Total Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overallPointsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 1.5rem;">
+                        <button id="dismissOverallPointsBtn" class="btn btn-secondary" style="width: 100%;">
+                            Back to Table
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const closeModal = () => {
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+            };
+
+            modal.querySelector('#closeOverallPointsBtn').addEventListener('click', closeModal);
+            modal.querySelector('#dismissOverallPointsBtn').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.style.display !== 'none' && modal.classList.contains('show')) {
+                    closeModal();
+                }
+            });
+        }
+
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+        this.updateOverallPointsModalContent();
+    }
+
+    updateOverallPointsModalContent() {
+        const tbody = document.getElementById('overallPointsTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        const scores = this.currentScores || [];
+
+        if (scores.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = `
+                <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                    Match is starting. Points will calculate after Round 1.
+                </td>
+            `;
+            tbody.appendChild(emptyRow);
+            return;
+        }
+
+        // Sort descending by total cumulative points
+        const sorted = [...scores].sort((a, b) => {
+            const sA = (a.total_score !== undefined) ? a.total_score : ((a.score !== undefined) ? a.score : 0);
+            const sB = (b.total_score !== undefined) ? b.total_score : ((b.score !== undefined) ? b.score : 0);
+            return sB - sA;
+        });
+
+        const myUsername = this.socketHandler?.userManager?.getUsername();
+
+        sorted.forEach((player, index) => {
+            const total = (player.total_score !== undefined) ? player.total_score : ((player.score !== undefined) ? player.score : 0);
+            const rankMedals = ['🥇', '🥈', '🥉'];
+            const rankLabel = rankMedals[index] || `#${index + 1}`;
+
+            const row = document.createElement('tr');
+            if (index === 0) row.classList.add('winner-row');
+
+            // Player cell
+            const isMe = (myUsername && player.name === myUsername);
+            const meBadge = isMe ? `<span class="room-badge" style="margin-left: 0.5rem; font-size: 0.72rem; padding: 0.15rem 0.5rem; background: rgba(99, 102, 241, 0.2); border-color: var(--primary);">You</span>` : '';
+
+            // Round status cell
+            let roundStatus = '-';
+            if (player.bet !== undefined && player.bet !== null) {
+                roundStatus = `Bid: ${player.bet} &bull; Won: ${player.wins || 0}`;
+            }
+
+            // Score formatting
+            let scoreFormatted = `${total} pts`;
+            let scoreColor = 'var(--text-muted)';
+            if (total > 0) {
+                scoreFormatted = `+${total} pts`;
+                scoreColor = '#10B981';
+            } else if (total < 0) {
+                scoreFormatted = `${total} pts`;
+                scoreColor = '#EF4444';
+            }
+
+            row.innerHTML = `
+                <td>
+                    <span style="display: inline-block; width: 28px;">${rankLabel}</span>
+                    <span style="font-weight: 700;">${player.name}</span>${meBadge}
+                </td>
+                <td style="text-align: center; font-size: 0.88rem; color: var(--text-muted);">
+                    ${roundStatus}
+                </td>
+                <td style="text-align: right; font-weight: 700; color: ${scoreColor}; font-size: 1.1rem; font-family: 'Outfit', sans-serif;">
+                    ${scoreFormatted}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
     }
 }

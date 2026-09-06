@@ -52,8 +52,8 @@ def create_initial_state(socketio):
         'names': ['Plyaer 1', 'Plyaer 2']
     }, to=request.sid)
     emit('score', [
-        {'name': 'Player 1', 'bet': 1, 'wins': 0},
-        {'name': 'Bot 1', 'bet': 0, 'wins': 1}
+        {'name': 'Player 1', 'bet': 1, 'wins': 0, 'score': 4, 'total_score': 4},
+        {'name': 'Bot 1', 'bet': 0, 'wins': 1, 'score': 2, 'total_score': 2}
     ])
     emit('round', 'Round 3')
 
@@ -66,8 +66,8 @@ def create_mid_game_state(socketio):
         'names': ['Plyaer 1', 'Plyaer 2']
     }, to=request.sid)
     emit('score', [
-        {'name': 'Player 1', 'bet': 1, 'wins': 0},
-        {'name': 'Bot 1', 'bet': 0, 'wins': 1}
+        {'name': 'Player 1', 'bet': 1, 'wins': 0, 'score': 4, 'total_score': 4},
+        {'name': 'Bot 1', 'bet': 0, 'wins': 1, 'score': 2, 'total_score': 2}
     ])
     emit('round', 'Round 3')
     emit('turn', 'Player 1')
@@ -81,9 +81,9 @@ def create_betting_state(socketio):
         'names': ['Plyaer 1', 'Plyaer 2']
     }, to=request.sid)
     emit('score', [
-        {'name': 'Player 1', 'bet': None, 'wins': 0},
-        {'name': 'Bot 1', 'bet': 2, 'wins': 0},
-        {'name': 'Bot 2', 'bet': 1, 'wins': 0}
+        {'name': 'Player 1', 'bet': None, 'wins': 0, 'score': 2, 'total_score': 2},
+        {'name': 'Bot 1', 'bet': 2, 'wins': 0, 'score': 4, 'total_score': 4},
+        {'name': 'Bot 2', 'bet': 1, 'wins': 0, 'score': 1, 'total_score': 1}
     ])
     emit('round', 'Round 1')
     emit('bet', 'Player 1')
@@ -97,8 +97,8 @@ def create_picking_state(socketio):
         'names': ['Plyaer 1', 'Plyaer 2']
     }, to=request.sid)
     emit('score', [
-        {'name': 'Player 1', 'bet': 2, 'wins': 0},
-        {'name': 'Bot 1', 'bet': 1, 'wins': 1}
+        {'name': 'Player 1', 'bet': 2, 'wins': 0, 'score': 2, 'total_score': 2},
+        {'name': 'Bot 1', 'bet': 1, 'wins': 1, 'score': 4, 'total_score': 4}
     ])
     emit('round', 'Round 2')
     emit('turn', 'Player 1')
@@ -112,9 +112,9 @@ def create_winner_state(socketio):
         'names': ['Plyaer 1', 'Plyaer 2']
     }, to=request.sid)
     emit('score', [
-        {'name': 'Player 1', 'bet': 2, 'wins': 1},
-        {'name': 'Bot 1', 'bet': 1, 'wins': 0},
-        {'name': 'Bot 2', 'bet': 2, 'wins': 1}
+        {'name': 'Player 1', 'bet': 2, 'wins': 1, 'score': 2, 'total_score': 2},
+        {'name': 'Bot 1', 'bet': 1, 'wins': 0, 'score': 4, 'total_score': 4},
+        {'name': 'Bot 2', 'bet': 2, 'wins': 1, 'score': 6, 'total_score': 6}
     ])
     emit('round', 'Round 3')
     emit('winner-card', '5 of Hearts')

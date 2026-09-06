@@ -138,6 +138,21 @@
   .room-topbar-info {
     justify-content: flex-start;
   }
+
+  .room-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .room-topbar-actions .btn {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .score-header-row #roundArea {
+    font-size: 1rem;
+  }
 }
 
 @media (min-width: 901px) {

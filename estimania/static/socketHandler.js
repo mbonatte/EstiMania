@@ -17,7 +17,7 @@ export default class SocketHandler {
         console.log(`Joining room: ${roomID}`);
         this.socket.emit('join_room', roomID, this.userManager.getUsername());
 
-        this.socket.on('error', (msg) => alert(msg));
+        this.socket.on('error', (msg) => this.uiManager.showError(msg));
         this.socket.on('message', (msg) => this.uiManager.appendMessage(msg));
         this.socket.on('remove_start_game_btn', () => this.uiManager.removeStartGameButton());
         this.socket.on('bet', (username, callback) => this.uiManager.showBetInputForm(callback));

@@ -51,8 +51,8 @@ class GameEngine:
                 card_played = player.select_card(current_table)
 
             if card_played is False:
-                # timeout/invalid
-                self.events.error(player, "Please select a valid card")
+                # The player has already been notified of invalid selection or timeout by select_card()
+                continue
             else:
                 return card_played
     
@@ -96,6 +96,7 @@ class GameEngine:
             self._play_one_trick()
         for p in self.players:
             p.check_points()
+        self.events.score(self.players)
 
     def _final_round(self):
         cards = self.rules.draw_random_cards(len(self.players))
@@ -117,6 +118,7 @@ class GameEngine:
         self.players[winner_idx].score_in_turn += 1
         for p in self.players:
             p.check_points()
+        self.events.score(self.players)
 
     def run(self):
         self.events.score(self.players)

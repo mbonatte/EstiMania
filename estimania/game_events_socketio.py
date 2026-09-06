@@ -8,7 +8,13 @@ class GameSocketEvents(GameEvents):
 
     def round_announce(self, text): self.socketio.emit('round', text, to=self.room_id)
     def score(self, players):
-        payload = [{'name': p.username, 'bet': p.bet, 'wins': p.score_in_turn} for p in players]
+        payload = [{
+            'name': p.username,
+            'bet': p.bet,
+            'wins': p.score_in_turn,
+            'score': p.score,
+            'total_score': p.score
+        } for p in players]
         self.socketio.emit('score', payload, to=self.room_id)
     def turn_of(self, player): self.socketio.emit('turn', player.username, to=self.room_id)
     def table(self, cards_str, names): self.socketio.emit('table', {'table': cards_str, 'names': names}, to=self.room_id)

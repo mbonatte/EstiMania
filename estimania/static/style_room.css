@@ -290,6 +290,45 @@
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+.score-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.score-header-row #roundArea {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.btn-points-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #FCD34D;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-points-toggle:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: var(--accent-gold);
+  transform: translateY(-1px);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
 #roundArea {
   display: inline-flex;
   align-items: center;
@@ -479,6 +518,12 @@
   pointer-events: none;
   opacity: 0;
   transition: all 0.3s ease;
+}
+
+#floatingText.toast-error {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.96), rgba(185, 28, 28, 0.96));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(239, 68, 68, 0.5);
+  border-color: rgba(254, 202, 202, 0.4);
 }
 
 @keyframes toastSlide {

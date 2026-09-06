@@ -25,7 +25,10 @@
             <button id="loadScenario" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Load Scenario</button>
         </div>
     </div>
-    <div class="room-topbar-actions">
+    <div class="room-topbar-actions" style="display: flex; align-items: center; gap: 0.5rem;">
+        <button id="viewOverallPointsBtnTop" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.5rem 0.85rem;">
+            <span>🏆</span> Standings
+        </button>
         <button id="startGameButton" class="btn btn-emerald" style="padding: 0.5rem 1.2rem;">
             <span>♠</span> Start Match
         </button>
@@ -43,7 +46,12 @@
     
     <button id="scoreToggleButton" class="toggle-button" data-content="Scores">Show Scores</button>
     <div id="scoreAreaWrapper" class="toggle-wrapper">
-        <div id="roundArea"><span>🃏</span> Round</div>
+        <div class="score-header-row">
+            <div id="roundArea"><span>🃏</span> Round</div>
+            <button id="viewOverallPointsBtn" class="btn-points-toggle" title="View overall match points">
+                <span>🏆</span> Points
+            </button>
+        </div>
         <table id="scoreArea" class="score-table">
             <thead>
                 <tr>
