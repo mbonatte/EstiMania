@@ -95,3 +95,32 @@ def test_api_leave_room(client):
     res_after = client.get('/api/rooms')
     assert room_id not in res_after.get_json()
     assert not redis_client.sismember('rooms', room_id)
+
+def test_socket_disconnect_prunes_room():
+    test_client = socketio.test_client(app)
+    sid = list(socketio.server.manager.rooms['/'][None].keys())[0]
+    room_id = f"socket_room_{uuid4().hex[:8]}"
+
+    test_client.emit('join_room', room_id, 'SocketUser')
+    active = get_active_rooms()
+    assert room_id in active
+
+    test_client.disconnect()
+    active_after = get_active_rooms()
+    assert room_id not in active_after
+    assert not redis_client.sismember('rooms', room_id)
+
+def test_pending_room_lifecycle(client):
+    room_name = f"pending_room_{uuid4().hex[:8]}"
+    res = client.post('/create_room', json={'roomName': room_name})
+    assert res.status_code == 200
+    created_id = res.get_json()['room_id']
+
+    # Room route can be visited by host
+    room_res = client.get(f'/rooms/{created_id}')
+    assert room_res.status_code == 200
+
+    # But browse_rooms does not show empty room to other players
+    browse_res = client.get('/api/rooms')
+    assert created_id not in browse_res.get_json()
+

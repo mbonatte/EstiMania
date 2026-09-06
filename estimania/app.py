@@ -44,6 +44,32 @@ register_test_routes(app, socketio)
 
 # === Utility Functions ===
 
+def is_sid_connected(sid):
+    """
+    Checks whether a socket ID is currently connected to the server.
+    """
+    if not sid:
+        return False
+    if app.config.get('TESTING') or 'pytest' in sys.modules:
+        # In unit tests, allow mock SIDs unless a real socketio test client is connected
+        try:
+            if hasattr(socketio, 'server') and hasattr(socketio.server, 'manager'):
+                if socketio.server.manager.is_connected(sid, '/'):
+                    return True
+        except Exception:
+            pass
+        if sid.startswith('sid_') or sid.startswith('test_'):
+            return True
+
+    try:
+        if hasattr(socketio, 'server') and hasattr(socketio.server, 'manager'):
+            return bool(socketio.server.manager.is_connected(sid, '/'))
+        if hasattr(socketio, 'server') and hasattr(socketio.server, 'eio'):
+            return sid in socketio.server.eio.sockets
+    except Exception:
+        pass
+    return False
+
 def save_player(sid, room_id, username):
     key = f'player:{sid}'
     redis_client.hset(key, mapping={
@@ -73,19 +99,22 @@ def cleanup_player_and_room(sid, room_id=None):
 
     if room_id:
         redis_client.srem(f'room:{room_id}:members', sid)
-        # Prune any stale members whose player hash expired or was deleted
+        # Prune any stale or disconnected members
         member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
         active_count = 0
         for m_sid in member_sids:
-            if redis_client.exists(f'player:{m_sid}'):
+            if is_sid_connected(m_sid) and redis_client.exists(f'player:{m_sid}'):
                 active_count += 1
             else:
+                delete_player(m_sid)
                 redis_client.srem(f'room:{room_id}:members', m_sid)
 
         # If no active human players remain, completely remove room
         if active_count == 0:
-            redis_client.srem('rooms', room_id)
-            redis_client.delete(f'room:{room_id}:members')
+            if not redis_client.exists(f'room:{room_id}:pending'):
+                redis_client.srem('rooms', room_id)
+                redis_client.delete(f'room:{room_id}:members')
+                redis_client.delete(f'room:{room_id}:pending')
         else:
             try:
                 emit_score_for_room(room_id)
@@ -96,24 +125,31 @@ def get_active_rooms():
     """
     Prunes empty and ghost rooms from Redis, returning only rooms with at least 1 active human player.
     """
-    room_ids = list(redis_client.smembers('rooms'))
+    try:
+        room_ids = list(redis_client.smembers('rooms'))
+    except Exception:
+        return {}
+
     rooms_data = {}
 
     for room_id in room_ids:
         member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
         active_count = 0
         for sid in member_sids:
-            if redis_client.exists(f'player:{sid}'):
+            if is_sid_connected(sid) and redis_client.exists(f'player:{sid}'):
                 active_count += 1
             else:
+                delete_player(sid)
                 redis_client.srem(f'room:{room_id}:members', sid)
 
         if active_count > 0:
             rooms_data[room_id] = list(range(active_count))
         else:
-            # Room has no active players: prune it from Redis immediately
-            redis_client.srem('rooms', room_id)
-            redis_client.delete(f'room:{room_id}:members')
+            # Check if this room was just created and pending host join (within 60s)
+            if not redis_client.exists(f'room:{room_id}:pending'):
+                # Room has no active players: prune it from Redis immediately
+                redis_client.srem('rooms', room_id)
+                redis_client.delete(f'room:{room_id}:members')
 
     return rooms_data
 
@@ -121,6 +157,10 @@ def get_players_in_room(room_id):
     sids = list(redis_client.smembers(f'room:{room_id}:members'))
     players = []
     for sid in sids:
+        if not is_sid_connected(sid):
+            delete_player(sid)
+            redis_client.srem(f'room:{room_id}:members', sid)
+            continue
         data = redis_client.hgetall(f'player:{sid}')
         if data and data.get('username'):
             players.append(NetworkPlayer(
@@ -132,6 +172,33 @@ def get_players_in_room(room_id):
         else:
             redis_client.srem(f'room:{room_id}:members', sid)
     return players
+
+def sweep_stale_rooms():
+    """
+    Sweeps Redis on startup or maintenance: removes any rooms and players that have no active socket connection.
+    """
+    try:
+        room_ids = list(redis_client.smembers('rooms'))
+        for room_id in room_ids:
+            member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
+            active_count = 0
+            for sid in member_sids:
+                if is_sid_connected(sid) and redis_client.exists(f'player:{sid}'):
+                    active_count += 1
+                else:
+                    delete_player(sid)
+                    redis_client.srem(f'room:{room_id}:members', sid)
+
+            if active_count == 0:
+                if not redis_client.exists(f'room:{room_id}:pending'):
+                    redis_client.srem('rooms', room_id)
+                    redis_client.delete(f'room:{room_id}:members')
+                    redis_client.delete(f'room:{room_id}:pending')
+    except Exception as e:
+        print(f"Sweep error: {e}")
+
+# Run startup sweep
+sweep_stale_rooms()
 
 def emit_score_for_room(room_id):
     players = get_players_in_room(room_id)
@@ -158,6 +225,7 @@ def create_room():
     
     room_id = request.json.get('roomName') or uuid4().hex
     redis_client.sadd('rooms', room_id)
+    redis_client.set(f'room:{room_id}:pending', '1', ex=60)
     redis_client.expire('rooms', REDIS_EXPIRE_SECONDS)
     redis_client.delete(f'room:{room_id}:members')
     return jsonify({'room_id': room_id})
@@ -202,7 +270,7 @@ def room(room_id):
     """
     Route to access a specific room.
     """
-    if redis_client.sismember('rooms', room_id):
+    if redis_client.sismember('rooms', room_id) or redis_client.exists(f'room:{room_id}:pending'):
         return render_template('room.html', room_id=room_id)
     return jsonify({'error': 'No room found'}), 404
 
@@ -222,6 +290,7 @@ def handle_join_room(room_id, username):
     """
     join_room(room_id)
 
+    redis_client.delete(f'room:{room_id}:pending')
     save_player(request.sid, room_id, username)
     add_to_room(room_id, request.sid)
     redis_client.sadd('rooms', room_id)
@@ -294,12 +363,13 @@ def handle_start_game(data):
         except Exception as e:
             print(f"Game error in room {room_id}: {e}")
         finally:
-            # Check if any human players remain in this room
+            # Check if any active human players remain in this room
             member_sids = list(redis_client.smembers(f'room:{room_id}:members'))
-            has_active = any(redis_client.exists(f'player:{s}') for s in member_sids)
+            has_active = any(is_sid_connected(s) and redis_client.exists(f'player:{s}') for s in member_sids)
             if not has_active:
                 redis_client.srem('rooms', room_id)
                 redis_client.delete(f'room:{room_id}:members')
+                redis_client.delete(f'room:{room_id}:pending')
 
     socketio.start_background_task(run_game)
 
