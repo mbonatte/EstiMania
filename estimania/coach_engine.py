@@ -1,4 +1,5 @@
 import os
+import random
 import pickle
 from typing import List, Dict, Optional, Any
 import numpy as np
@@ -122,31 +123,67 @@ class CoachEngine:
 
         # Case 2: Regular Round
         n_cards = len(hand)
-        ga_est = self._ga_estimate_tricks(hand)
-        scores_list = []
+        unseen = self.tracker.get_unseen_cards(hand)
+        total_opp_cards = n_adversaries * n_cards
 
-        for cand_bet in range(n_cards + 1):
-            if self.mlp_model is not None:
-                feats = extract_hand_features(
-                    hand=hand,
-                    n_adversaries=n_adversaries,
-                    current_bets=current_bets,
-                    cand_bet=cand_bet,
-                )
-                pred_reward = float(self.mlp_model.predict([feats])[0])
-            else:
-                pred_reward = 0.0
+        if len(unseen) >= total_opp_cards:
+            actual_samples = min(60, 60 if n_cards <= 4 else 35)
+            win_counts = {w: 0 for w in range(n_cards + 1)}
+            total_players = n_adversaries + 1
 
-            # Blend with GA prior distance penalty
-            ga_dist = abs(cand_bet - ga_est)
-            score = pred_reward - 0.45 * ga_dist
-            scores_list.append(score)
+            for _ in range(actual_samples):
+                shuffled = list(unseen)
+                random.shuffle(shuffled)
+                opp_hands = [shuffled[i * n_cards : (i + 1) * n_cards] for i in range(n_adversaries)]
 
-        # Calibrate via temperature-scaled softmax
-        scores_arr = np.array(scores_list, dtype=np.float64)
-        temperature = 1.25
-        exp_vals = np.exp((scores_arr - np.max(scores_arr)) / temperature)
-        raw_probs = exp_vals / np.sum(exp_vals)
+                my_h = list(hand)
+                sim_hands = [my_h] + [list(h) for h in opp_hands]
+                leader = 0
+                my_wins = 0
+
+                for _ in range(n_cards):
+                    order = list(range(leader, total_players)) + list(range(0, leader))
+                    trick = []
+                    for p_idx in order:
+                        h = sim_hands[p_idx]
+                        if not trick:
+                            c = max(h, key=lambda x: int(x)) if any(int(x) >= 48 for x in h) else min(h, key=lambda x: int(x))
+                        else:
+                            lead_suit = trick[0].suit
+                            legal = [x for x in h if x.suit == lead_suit] or h
+                            cur_high = max(int(x) for x in trick)
+                            winners = [x for x in legal if int(x) > cur_high]
+                            if winners:
+                                c = min(winners, key=lambda x: int(x))
+                            else:
+                                c = min(legal, key=lambda x: int(x))
+                        h.remove(c)
+                        trick.append(c)
+
+                    best_c = max(trick, key=lambda x: int(x))
+                    win_pos = trick.index(best_c)
+                    leader = order[win_pos]
+                    if leader == 0:
+                        my_wins += 1
+
+                win_counts[my_wins] += 1
+
+            raw_probs = [win_counts.get(w, 0) / actual_samples for w in range(n_cards + 1)]
+
+            # Compute Expected Values for optimal contract selection
+            evs = []
+            for b in range(n_cards + 1):
+                ev = 0.0
+                for w in range(n_cards + 1):
+                    p = raw_probs[w]
+                    rew = (1.0 if b == 0 else 2.0 * b) if w == b else -float(abs(b - w))
+                    ev += p * rew
+                evs.append(ev)
+
+            rec_bet = int(np.argmax(evs))
+        else:
+            raw_probs = [1.0] + [0.0] * n_cards
+            rec_bet = 0
 
         # Convert to integer percentages that sum to 100
         int_probs = [int(round(p * 100)) for p in raw_probs]
@@ -159,7 +196,6 @@ class CoachEngine:
             if int_probs[i] == 0 and raw_probs[i] > 0.005:
                 int_probs[i] = 1
 
-        rec_bet = int(np.argmax(scores_arr))
         rec_prob = int_probs[rec_bet]
 
         # Generate descriptive coach rationale

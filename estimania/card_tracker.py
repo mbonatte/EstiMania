@@ -114,24 +114,37 @@ class CardTracker:
                 count += 1
         return count
 
+    def count_lower_unseen(self, card: Card, my_hand: List[Card]) -> int:
+        """Count how many unseen cards are strictly lower than this card."""
+        card_val = int(card)
+        known_ints = set(int(c) for c in my_hand) | set(int(c) for c in self.played_in_round)
+        count = 0
+        for c in self.full_deck:
+            val = int(c)
+            if val < card_val and val not in known_ints:
+                count += 1
+        return count
+
     def sample_opponent_hands(
         self,
         opponent_names: List[str],
         hand_size: int,
         my_hand: List[Card],
+        hand_sizes: Optional[Dict[str, int]] = None,
     ) -> Optional[Dict[str, List[Card]]]:
         """
         Sample a plausible distribution of remaining cards to opponents,
-        strictly respecting known void constraints for each opponent.
+        strictly respecting known void constraints and per-opponent hand sizes.
         Used by Perfect Information Monte Carlo (PIMC).
         """
         unseen = self.get_unseen_cards(my_hand)
-        total_needed = len(opponent_names) * hand_size
+        req_sizes = {name: (hand_sizes.get(name, hand_size) if hand_sizes else hand_size) for name in opponent_names}
+        total_needed = sum(req_sizes.values())
         if len(unseen) < total_needed:
             return None
 
-        # Try up to 8 randomized partition attempts
-        for _ in range(8):
+        # Try up to 10 randomized partition attempts respecting voids
+        for _ in range(10):
             shuffled = list(unseen)
             random.shuffle(shuffled)
             assigned: Dict[str, List[Card]] = {name: [] for name in opponent_names}
@@ -139,12 +152,15 @@ class CardTracker:
             success = True
 
             for name in opponent_names:
+                needed_h = req_sizes[name]
+                if needed_h == 0:
+                    continue
                 void_suits = self.voids.get(name, set())
                 valid_for_player = [c for c in pool if c.suit not in void_suits]
-                if len(valid_for_player) < hand_size:
+                if len(valid_for_player) < needed_h:
                     success = False
                     break
-                selected = valid_for_player[:hand_size]
+                selected = valid_for_player[:needed_h]
                 assigned[name] = selected
                 for c in selected:
                     pool.remove(c)
@@ -152,10 +168,13 @@ class CardTracker:
             if success:
                 return assigned
 
-        # Fallback: ignore voids if constraint is too tight
+        # Fallback: ignore voids if constraints are too tight
         shuffled = list(unseen)
         random.shuffle(shuffled)
         assigned = {}
-        for idx, name in enumerate(opponent_names):
-            assigned[name] = shuffled[idx * hand_size : (idx + 1) * hand_size]
+        cursor = 0
+        for name in opponent_names:
+            needed_h = req_sizes[name]
+            assigned[name] = shuffled[cursor : cursor + needed_h]
+            cursor += needed_h
         return assigned

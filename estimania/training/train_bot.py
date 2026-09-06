@@ -10,6 +10,8 @@ from sklearn.metrics import mean_squared_error, r2_score
 from estimania.features import FEATURE_NAMES
 from estimania.training.simulation import simulate_single_round
 
+from multiprocessing import Pool
+
 class CustomMLPModel:
     """Pure numpy forward pass matching sklearn MLPRegressor with ReLU activations."""
     def __init__(self, coefs, intercepts):
@@ -24,37 +26,53 @@ class CustomMLPModel:
         output = np.dot(layer_input, self.coefs_[-1]) + self.intercepts_[-1]
         return output.flatten()
 
-def generate_dataset(num_rounds: int, bet_policy_model=None, verbose: bool = True):
+def _worker_sim_round(args):
+    bet_policy_model, seed = args
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+    player_counts = [2, 3, 4, 5]
+    n_players = random.choice(player_counts)
+    max_c = min(8, 52 // n_players)
+    n_cards = random.randint(1, max_c)
+    return simulate_single_round(
+        num_players=n_players,
+        n_cards=n_cards,
+        bet_policy_model=bet_policy_model,
+    )
+
+def generate_dataset(num_rounds: int, bet_policy_model=None, verbose: bool = True, workers: int = 6):
     """
-    Generate dataset of feature vectors and rewards from simulated rounds.
+    Generate dataset of feature vectors and rewards from simulated rounds using worker pool.
     """
     if verbose:
-        print(f"Generating data from {num_rounds} simulated rounds...")
+        print(f"Generating data from {num_rounds} simulated rounds with {workers} workers...")
     start_time = time.time()
+
+    seeds = [random.randint(0, 1000000000) for _ in range(num_rounds)]
+    tasks = [(bet_policy_model, s) for s in seeds]
 
     all_X = []
     all_y = []
 
-    player_counts = [2, 3, 4, 5]
-
-    for r in range(num_rounds):
-        n_players = random.choice(player_counts)
-        max_c = min(8, 52 // n_players)
-        n_cards = random.randint(1, max_c)
-
-        samples = simulate_single_round(
-            num_players=n_players,
-            n_cards=n_cards,
-            bet_policy_model=bet_policy_model,
-        )
-
-        for feats, reward in samples:
-            all_X.append(feats)
-            all_y.append(reward)
-
-        if verbose and (r + 1) % 2000 == 0:
-            elapsed = time.time() - start_time
-            print(f"  Completed {r + 1}/{num_rounds} rounds ({len(all_X)} samples) in {elapsed:.1f}s")
+    if workers > 1:
+        with Pool(processes=workers) as pool:
+            for i, samples in enumerate(pool.imap_unordered(_worker_sim_round, tasks, chunksize=25)):
+                for feats, reward in samples:
+                    all_X.append(feats)
+                    all_y.append(reward)
+                if verbose and (i + 1) % 2000 == 0:
+                    elapsed = time.time() - start_time
+                    print(f"  Completed {i + 1}/{num_rounds} rounds ({len(all_X)} samples) in {elapsed:.1f}s")
+    else:
+        for r in range(num_rounds):
+            samples = _worker_sim_round(tasks[r])
+            for feats, reward in samples:
+                all_X.append(feats)
+                all_y.append(reward)
+            if verbose and (r + 1) % 2000 == 0:
+                elapsed = time.time() - start_time
+                print(f"  Completed {r + 1}/{num_rounds} rounds ({len(all_X)} samples) in {elapsed:.1f}s")
 
     if verbose:
         total_time = time.time() - start_time
@@ -72,7 +90,7 @@ def train_and_export(
         export_path = os.path.join(current_dir, 'trained_bot_model.pkl')
 
     print("=== Phase 1: Exploration & Bootstrap Training ===")
-    X1, y1 = generate_dataset(num_rounds_phase1, bet_policy_model=None)
+    X1, y1 = generate_dataset(num_rounds_phase1, bet_policy_model=None, workers=6)
 
     mlp = MLPRegressor(
         hidden_layer_sizes=(128, 64, 32),
@@ -94,7 +112,7 @@ def train_and_export(
     phase1_model = CustomMLPModel(mlp.coefs_, mlp.intercepts_)
 
     print("\n=== Phase 2: Self-Play Reinforcement Training ===")
-    X2, y2 = generate_dataset(num_rounds_phase2, bet_policy_model=phase1_model)
+    X2, y2 = generate_dataset(num_rounds_phase2, bet_policy_model=phase1_model, workers=6)
 
     # Combine datasets
     X_combined = np.vstack([X1, X2])

@@ -146,8 +146,8 @@ class BotPlayer(Player):
             best_score = float('-inf')
             n_cards = len(self.hand)
 
-            # GA heuristic estimate for ensemble blending
-            ga_est = self._ga_estimate_tricks() if self.ga_weights else None
+            # Monte Carlo Expected Value Bidding
+            mc_evs = self._mc_evaluate_bids(n_adversaries, current_bets)
             deficit = leader_score - self.score
 
             for cand_bet in range(n_cards + 1):
@@ -158,20 +158,22 @@ class BotPlayer(Player):
                     cand_bet=cand_bet,
                 )
                 pred_reward = float(self.mlp_model.predict([feats])[0])
+                mc_ev = mc_evs.get(cand_bet, 0.0)
 
-                # Blend with GA prior
-                if ga_est is not None:
-                    # Penalize distance from GA target
-                    ga_dist = abs(cand_bet - ga_est)
-                    pred_reward -= 0.45 * ga_dist
+                # Blend MC EV (70%) with MLP Prediction (30%)
+                combined_score = 0.70 * mc_ev + 0.30 * pred_reward
 
-                # Catch-up aggressiveness if trailing the leader by > 3 points in turns >= 3
+                # Match Standing adjustments:
                 if deficit > 3 and n_cards >= 3 and cand_bet > 0:
+                    # Trailing behind: encourage positive winning contracts
                     catchup_factor = self.ga_weights.get('catchup_aggression', 0.6) if self.ga_weights else 0.5
-                    pred_reward += catchup_factor * 0.4 * cand_bet
+                    combined_score += catchup_factor * 0.5 * cand_bet
+                elif deficit < -4 and cand_bet == 0:
+                    # Solidly in the lead: reward conservative 0 bids to protect lead
+                    combined_score += 0.35
 
-                if pred_reward > best_score:
-                    best_score = pred_reward
+                if combined_score > best_score:
+                    best_score = combined_score
                     best_bet = cand_bet
 
             self.bet = best_bet
@@ -182,6 +184,81 @@ class BotPlayer(Player):
         self.bet = self.bot_bet_decision(self.env_data)
         self.env_data["my_bet"] = self.bet
         return self.bet
+
+    def _mc_evaluate_bids(
+        self,
+        n_adversaries: int,
+        current_bets: List[int],
+        num_samples: int = 60,
+    ) -> Dict[int, float]:
+        """
+        Monte Carlo Expected Value Bidding Oracle:
+        Simulate deals from remaining unseen cards and calculate expected points
+        for each contract b in [0..n_cards].
+        """
+        n_cards = len(self.hand)
+        total_players = n_adversaries + 1
+        unseen = self.tracker.get_unseen_cards(self.hand)
+        total_opp_cards = n_adversaries * n_cards
+
+        if len(unseen) < total_opp_cards:
+            return {b: 0.0 for b in range(n_cards + 1)}
+
+        win_counts = {w: 0 for w in range(n_cards + 1)}
+        actual_samples = min(num_samples, 60 if n_cards <= 4 else 35)
+
+        for _ in range(actual_samples):
+            shuffled = list(unseen)
+            random.shuffle(shuffled)
+            opp_hands = [shuffled[i * n_cards : (i + 1) * n_cards] for i in range(n_adversaries)]
+
+            my_h = list(self.hand)
+            sim_hands = [my_h] + [list(h) for h in opp_hands]
+            leader = 0
+            my_wins = 0
+
+            for _ in range(n_cards):
+                order = list(range(leader, total_players)) + list(range(0, leader))
+                trick = []
+                for p_idx in order:
+                    h = sim_hands[p_idx]
+                    if not trick:
+                        c = max(h, key=lambda x: int(x)) if any(int(x) >= 48 for x in h) else min(h, key=lambda x: int(x))
+                    else:
+                        lead_suit = trick[0].suit
+                        legal = [x for x in h if x.suit == lead_suit] or h
+                        cur_high = max(int(x) for x in trick)
+                        winners = [x for x in legal if int(x) > cur_high]
+                        if winners:
+                            c = min(winners, key=lambda x: int(x))
+                        else:
+                            c = min(legal, key=lambda x: int(x))
+                    h.remove(c)
+                    trick.append(c)
+
+                best_c = max(trick, key=lambda x: int(x))
+                win_pos = trick.index(best_c)
+                leader = order[win_pos]
+                if leader == 0:
+                    my_wins += 1
+
+            win_counts[my_wins] += 1
+
+        probs = {w: win_counts[w] / actual_samples for w in win_counts}
+
+        # Calculate Expected Value for each candidate bet
+        evs = {}
+        for b in range(n_cards + 1):
+            ev = 0.0
+            for w, p in probs.items():
+                if w == b:
+                    reward = 1.0 if b == 0 else 2.0 * b
+                else:
+                    reward = -float(abs(b - w))
+                ev += p * reward
+            evs[b] = ev
+
+        return evs
 
     def _ga_estimate_tricks(self) -> float:
         """Estimate tricks using the evolved GA parameters."""

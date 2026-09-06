@@ -51,9 +51,9 @@ class CardPlayEngine:
         is_last_to_play = (len(cards_in_table) == total_players - 1)
         current_highest = max(cards_in_table, key=lambda c: int(c)) if not is_leading else None
 
-        # If hand is small (<= 4 cards) and we have multiple candidates, PIMC lookahead is extremely fast & accurate
-        if 1 < len(hand) <= 4 and active_player_names and len(legal) > 1:
-            best_card = self._evaluate_pimc(
+        # Deep PIMC rollout lookahead for ALL hand sizes when multiple legal candidates exist
+        if active_player_names and len(legal) > 1:
+            best_card = self._evaluate_deep_pimc(
                 legal=legal,
                 hand=hand,
                 cards_in_table=cards_in_table,
@@ -228,7 +228,7 @@ class CardPlayEngine:
         else:
             return min(legal, key=lambda c: int(c))
 
-    def _evaluate_pimc(
+    def _evaluate_deep_pimc(
         self,
         legal: List[Card],
         hand: List[Card],
@@ -238,66 +238,163 @@ class CardPlayEngine:
         total_players: int,
         my_name: str,
         active_player_names: List[str],
-        num_samples: int = 5,
+        num_samples: int = 30,
     ) -> Optional[Card]:
         """
-        PIMC (Perfect Information Monte Carlo) Rollout Search:
-        Sample unseen cards consistent with known voids, simulate remaining tricks,
-        and evaluate reward - sabotage.
+        Ultra Grandmaster Deep PIMC Rollout:
+        Sample unseen cards consistent with known voids, and simulate ALL remaining
+        tricks to the end of the round with target-aware opponent play and sabotage.
         """
         other_names = [n for n in active_player_names if n != my_name]
         if not other_names:
             return None
 
-        # Each opponent has len(hand) or len(hand) - 1 cards depending on whether they've played this trick
-        scores_by_card: Dict[int, float] = {int(c): 0.0 for c in legal}
+        # Determine exact hand sizes for each opponent (opponents who already played this trick have len(hand) - 1)
+        cards_played_so_far = len(cards_in_table)
+        try:
+            my_circular_idx = active_player_names.index(my_name)
+        except ValueError:
+            my_circular_idx = cards_played_so_far
 
-        for _ in range(num_samples):
+        hand_sizes = {}
+        for idx, name in enumerate(active_player_names):
+            if name == my_name:
+                continue
+            if idx < my_circular_idx:
+                hand_sizes[name] = max(0, len(hand) - 1)
+            else:
+                hand_sizes[name] = len(hand)
+
+        scores_by_card: Dict[int, float] = {int(c): 0.0 for c in legal}
+        samples_evaluated = 0
+
+        # Adjust sample count dynamically based on hand size to ensure < 15ms latency
+        actual_samples = min(num_samples, 40 if len(hand) <= 4 else 25)
+
+        for _ in range(actual_samples):
             sampled_hands = self.tracker.sample_opponent_hands(
                 opponent_names=other_names,
                 hand_size=len(hand),
                 my_hand=hand,
+                hand_sizes=hand_sizes,
             )
             if not sampled_hands:
                 continue
 
+            samples_evaluated += 1
+
             for candidate_card in legal:
-                my_wins = score_in_turn
-                # Simulate current trick
-                cur_trick = list(cards_in_table) + [candidate_card]
-                # Other players yet to play this trick
-                remaining_to_act = total_players - len(cur_trick)
-                for opp_idx in range(remaining_to_act):
-                    opp_name = other_names[opp_idx % len(other_names)]
-                    opp_h = sampled_hands.get(opp_name, [])
-                    if opp_h:
-                        lead_suit = cur_trick[0].suit
-                        matched = [c for c in opp_h if c.suit == lead_suit]
-                        chosen = matched[0] if matched else opp_h[0]
-                        cur_trick.append(chosen)
+                # Simulate entire round starting from playing candidate_card
+                sim_hands = {n: list(sampled_hands[n]) for n in other_names}
+                sim_hands[my_name] = [c for c in hand if c != candidate_card]
+                sim_wins = {n: self.tracker.opponent_wins.get(n, 0) for n in other_names}
+                sim_wins[my_name] = score_in_turn
+
+                # 1. Complete the current trick
+                cur_trick_cards = list(cards_in_table) + [candidate_card]
+                cur_trick_players = active_player_names[:my_circular_idx + 1]
+                remaining_to_act = active_player_names[my_circular_idx + 1:]
+
+                for i, opp_name in enumerate(remaining_to_act):
+                    is_last = (i == len(remaining_to_act) - 1)
+                    opp_h = sim_hands[opp_name]
+                    if not opp_h:
+                        continue
+                    opp_bet = self.tracker.opponent_contracts.get(opp_name, 0)
+                    wants = (opp_bet - sim_wins.get(opp_name, 0) > 0)
+                    chosen = self._pick_rollout_card(opp_h, cur_trick_cards, wants, is_last)
+                    opp_h.remove(chosen)
+                    cur_trick_cards.append(chosen)
+                    cur_trick_players.append(opp_name)
 
                 # Who won current trick?
-                highest_in_trick = max(cur_trick, key=lambda c: int(c))
-                if highest_in_trick == candidate_card:
-                    my_wins += 1
+                highest_in_trick = max(cur_trick_cards, key=lambda c: int(c))
+                win_player_idx = cur_trick_cards.index(highest_in_trick)
+                trick_winner = cur_trick_players[win_player_idx]
+                sim_wins[trick_winner] = sim_wins.get(trick_winner, 0) + 1
 
-                # Quick estimation for remaining tricks
-                remaining_hand = [c for c in hand if c != candidate_card]
-                est_future_wins = len([c for c in remaining_hand if self.tracker.is_boss_card(c, remaining_hand)])
-                total_est_wins = my_wins + est_future_wins
+                # 2. Simulate all remaining tricks until hands are empty
+                lead_player = trick_winner
+                n_players = len(active_player_names)
+                while len(sim_hands[my_name]) > 0:
+                    try:
+                        lead_idx = active_player_names.index(lead_player)
+                    except ValueError:
+                        lead_idx = 0
+                    order = active_player_names[lead_idx:] + active_player_names[:lead_idx]
+                    rem_trick_cards = []
+                    rem_trick_players = []
 
-                # Score this outcome
-                if total_est_wins == bet:
-                    r = 1.0 if bet == 0 else float(2 * bet)
+                    for i, p_name in enumerate(order):
+                        is_last = (i == n_players - 1)
+                        p_h = sim_hands[p_name]
+                        if not p_h:
+                            continue
+                        p_bet = self.tracker.opponent_contracts.get(p_name, 0) if p_name != my_name else bet
+                        wants = (p_bet - sim_wins.get(p_name, 0) > 0)
+                        chosen = self._pick_rollout_card(p_h, rem_trick_cards, wants, is_last)
+                        p_h.remove(chosen)
+                        rem_trick_cards.append(chosen)
+                        rem_trick_players.append(p_name)
+
+                    if rem_trick_cards:
+                        highest_card = max(rem_trick_cards, key=lambda c: int(c))
+                        win_pos = rem_trick_cards.index(highest_card)
+                        lead_player = rem_trick_players[win_pos]
+                        sim_wins[lead_player] = sim_wins.get(lead_player, 0) + 1
+                    else:
+                        break
+
+                # 3. Score the full round outcome
+                my_total = sim_wins.get(my_name, 0)
+                if my_total == bet:
+                    my_reward = 1.0 if bet == 0 else float(2 * bet)
                 else:
-                    r = -float(abs(bet - total_est_wins))
+                    my_reward = -float(abs(bet - my_total))
 
-                scores_by_card[int(candidate_card)] += r
+                # Opponent sabotage adjustment:
+                leader_name = self.tracker.get_leader_name(my_name)
+                if leader_name and leader_name in sim_wins:
+                    l_bet = self.tracker.opponent_contracts.get(leader_name, 0)
+                    l_wins = sim_wins[leader_name]
+                    if l_wins == l_bet:
+                        l_reward = 1.0 if l_bet == 0 else float(2 * l_bet)
+                    else:
+                        l_reward = -float(abs(l_bet - l_wins))
+                    round_val = my_reward - (self.sabotage_weight * l_reward)
+                else:
+                    round_val = my_reward
 
-        # Return card with best average score
+                scores_by_card[int(candidate_card)] += round_val
+
+        if samples_evaluated == 0:
+            return None
+
         best_c_int = max(scores_by_card, key=scores_by_card.get)
         for c in legal:
             if int(c) == best_c_int:
                 return c
 
         return None
+
+    @staticmethod
+    def _pick_rollout_card(hand: List[Card], trick: List[Card], wants_tricks: bool, is_last: bool) -> Card:
+        """Heuristic rollout policy for fast multi-trick simulation."""
+        if not trick:
+            return max(hand, key=lambda c: int(c)) if wants_tricks else min(hand, key=lambda c: int(c))
+        lead_suit = trick[0].suit
+        legal = [c for c in hand if c.suit == lead_suit]
+        if not legal:
+            legal = hand
+        cur_high = max(int(c) for c in trick)
+        winners = [c for c in legal if int(c) > cur_high]
+        losers = [c for c in legal if int(c) < cur_high]
+
+        if wants_tricks:
+            if winners:
+                return min(winners, key=lambda c: int(c)) if is_last else max(winners, key=lambda c: int(c))
+            return min(legal, key=lambda c: int(c))
+        else:
+            if losers:
+                return max(losers, key=lambda c: int(c))
+            return min(legal, key=lambda c: int(c)) if is_last else max(legal, key=lambda c: int(c))
