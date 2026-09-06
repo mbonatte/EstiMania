@@ -16,8 +16,11 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - estimania-net
-      - proxy
+      estimania-net: {}
+      proxy:
+        aliases:
+          - estimania
+          - estimania-app
 
   redis:
     image: redis:7-alpine
