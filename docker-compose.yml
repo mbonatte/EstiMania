@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: .
+      context: ${BUILD_CONTEXT:-https://github.com/mbonatte/EstiMania.git#main}
       dockerfile: Dockerfile
     container_name: estimania-app
     restart: unless-stopped
