@@ -112,7 +112,12 @@ class GABot:
 
 from multiprocessing import Pool
 
-def play_match(genome: Dict[str, float], num_turns: int = 4, champion_genome: Dict[str, float] = None) -> int:
+def play_match(
+    genome: Dict[str, float],
+    num_turns: int = 4,
+    champion_genome: Dict[str, float] = None,
+    num_players: int = 5,
+) -> int:
     """Play a complete match against diverse baseline opponents and return points scored."""
     rules = GameRules()
     player_ga = GABot("GABot", genome)
@@ -125,14 +130,21 @@ def play_match(genome: Dict[str, float], num_turns: int = 4, champion_genome: Di
     aggressive_g['ace_bonus'] = 1.3
     p_aggressive = GABot("Aggressive", aggressive_g)
 
-    if champion_genome:
-        p_fourth = GABot("PastChampion", champion_genome)
-    else:
-        cautious_g = dict(default_g)
-        cautious_g['zero_bid_safety_margin'] = 0.8
-        p_fourth = GABot("Cautious", cautious_g)
+    cautious_g = dict(default_g)
+    cautious_g['zero_bid_safety_margin'] = 0.8
+    p_cautious = GABot("Cautious", cautious_g)
 
-    players = [player_ga, p_heuristic, p_aggressive, p_fourth]
+    p_champ = GABot("PastChampion", champion_genome) if champion_genome else GABot("Heuristic2", default_g)
+
+    if num_players == 5:
+        players = [player_ga, p_heuristic, p_aggressive, p_cautious, p_champ]
+    elif num_players == 3:
+        players = [player_ga, p_heuristic, p_champ]
+    elif num_players == 2:
+        players = [player_ga, p_champ]
+    else:
+        players = [player_ga, p_heuristic, p_aggressive, p_champ]
+
     total_players = len(players)
 
     for turn_idx in range(1, num_turns + 1):
@@ -193,8 +205,11 @@ def play_match(genome: Dict[str, float], num_turns: int = 4, champion_genome: Di
     return player_ga.score
 
 def _eval_individual_worker(args) -> float:
-    genome, matches_per_eval, champion_genome = args
-    scores = [play_match(genome, num_turns=4, champion_genome=champion_genome) for _ in range(matches_per_eval)]
+    genome, matches_per_eval, champion_genome, num_players = args
+    scores = [
+        play_match(genome, num_turns=4, champion_genome=champion_genome, num_players=num_players)
+        for _ in range(matches_per_eval)
+    ]
     return float(np.mean(scores))
 
 def crossover(parent1: Dict[str, float], parent2: Dict[str, float]) -> Dict[str, float]:
@@ -225,6 +240,7 @@ def run_genetic_algorithm(
     matches_per_eval: int = 16,
     seed_genome: Dict[str, float] = None,
     workers: int = 12,
+    num_players: int = 5,
     export_path: str = None,
 ) -> Dict[str, float]:
     """
@@ -242,9 +258,9 @@ def run_genetic_algorithm(
             seed_genome = None
 
     print(f"\n========================================================")
-    print(f"  GENETIC ALGORITHM EVOLUTIONARY TRAINING (BATCH 2)")
+    print(f"  GENETIC ALGORITHM EVOLUTIONARY TRAINING ({num_players}-PLAYER TABLE)")
     print(f"  Population: {population_size} | Generations: {generations} | Matches/Eval: {matches_per_eval}")
-    print(f"  Workers: {workers} cores | Seeded: {'Yes' if seed_genome else 'Random'}")
+    print(f"  Workers: {workers} cores | Table Size: {num_players} Players | Seeded: {'Yes' if seed_genome else 'Random'}")
     print(f"========================================================\n")
 
     start_time = time.time()
@@ -259,9 +275,9 @@ def run_genetic_algorithm(
 
     best_overall_genome = copy.deepcopy(seed_genome) if seed_genome else None
     if seed_genome:
-        seed_scores = [play_match(seed_genome, num_turns=4, champion_genome=seed_genome) for _ in range(matches_per_eval * 2)]
+        seed_scores = [play_match(seed_genome, num_turns=4, champion_genome=seed_genome, num_players=num_players) for _ in range(matches_per_eval * 2)]
         best_overall_fitness = float(np.mean(seed_scores))
-        print(f"Current Champion Baseline Fitness: {best_overall_fitness:+.2f} pts across {matches_per_eval * 2} validation matches\n")
+        print(f"Current Champion Baseline Fitness: {best_overall_fitness:+.2f} pts across {matches_per_eval * 2} validation matches ({num_players} players)\n")
     else:
         best_overall_fitness = float('-inf')
 
@@ -274,7 +290,7 @@ def run_genetic_algorithm(
             
             # Prepare parallel eval arguments
             eval_champion = best_overall_genome if best_overall_genome else seed_genome
-            eval_args = [(ind, matches_per_eval, eval_champion) for ind in population]
+            eval_args = [(ind, matches_per_eval, eval_champion, num_players) for ind in population]
             
             fitness_scores = pool.map(_eval_individual_worker, eval_args)
 
@@ -330,5 +346,20 @@ def run_genetic_algorithm(
     return best_overall_genome
 
 if __name__ == '__main__':
-    run_genetic_algorithm(population_size=24, generations=200, matches_per_eval=14, workers=16)
+    import argparse
+    parser = argparse.ArgumentParser(description="Run Evolutionary Genetic Algorithm for EstiMania Bots")
+    parser.add_argument("--players", type=int, default=5, help="Number of players at the table (default: 5)")
+    parser.add_argument("--generations", type=int, default=200, help="Number of generations to evolve (default: 200)")
+    parser.add_argument("--pop-size", type=int, default=24, help="Population size (default: 24)")
+    parser.add_argument("--matches", type=int, default=14, help="Matches per individual evaluation (default: 14)")
+    parser.add_argument("--workers", type=int, default=16, help="Worker processes (default: 16)")
+    args = parser.parse_args()
+
+    run_genetic_algorithm(
+        population_size=args.pop_size,
+        generations=args.generations,
+        matches_per_eval=args.matches,
+        workers=args.workers,
+        num_players=args.players,
+    )
 

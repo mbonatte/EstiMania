@@ -143,5 +143,17 @@ class TestBotPlayer(unittest.TestCase):
             for p in players:
                 self.assertIsInstance(p.score, int)
 
+    def test_full_game_with_5_players(self):
+        # Run full games with 5 bots to verify 5-player bidding, play engine, and final round
+        for _ in range(3):
+            players = [BotPlayer(f"Bot{i}") for i in range(5)]
+            rules = GameRules(max_turns=3)
+            engine = GameEngine(rules=rules, players=players, events=SilentEvents())
+            engine.run()
+
+            for p in players:
+                self.assertIsInstance(p.score, int)
+
 if __name__ == '__main__':
     unittest.main()
+
