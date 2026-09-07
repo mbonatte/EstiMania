@@ -258,7 +258,12 @@ def run_genetic_algorithm(
         population.append(random_genome())
 
     best_overall_genome = copy.deepcopy(seed_genome) if seed_genome else None
-    best_overall_fitness = float('-inf')
+    if seed_genome:
+        seed_scores = [play_match(seed_genome, num_turns=4, champion_genome=seed_genome) for _ in range(matches_per_eval * 2)]
+        best_overall_fitness = float(np.mean(seed_scores))
+        print(f"Current Champion Baseline Fitness: {best_overall_fitness:+.2f} pts across {matches_per_eval * 2} validation matches\n")
+    else:
+        best_overall_fitness = float('-inf')
 
     # Worker pool for parallel evaluations
     pool = Pool(processes=workers)
@@ -285,7 +290,7 @@ def run_genetic_algorithm(
                     pickle.dump(best_overall_genome, f)
 
             gen_time = time.time() - gen_start
-            if (gen + 1) % 5 == 0 or gen == 0 or gen == generations - 1:
+            if (gen + 1) % 10 == 0 or gen == 0 or gen == generations - 1:
                 print(f"Gen {gen + 1:03d}/{generations:03d} - Best: {gen_best_fitness:+.2f} pts | Avg: {gen_avg_fitness:+.2f} pts | All-Time: {best_overall_fitness:+.2f} pts ({gen_time:.2f}s)")
 
             # Selection: Tournament selection (k=3)
@@ -325,5 +330,5 @@ def run_genetic_algorithm(
     return best_overall_genome
 
 if __name__ == '__main__':
-    run_genetic_algorithm(population_size=28, generations=150, matches_per_eval=16, workers=12)
+    run_genetic_algorithm(population_size=24, generations=200, matches_per_eval=14, workers=16)
 
